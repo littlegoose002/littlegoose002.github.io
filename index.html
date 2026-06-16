@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Astrolabe · 拆封问卜</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/assets/index-Cfi9Ev2O.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BrqCZQmf.css">
+  </head>
+  <body>
+    <!-- BYOK setup: choose an AI + paste your own key (stored only in this browser) -->
+    <div class="setup" id="setup">
+      <div class="setup-card">
+        <p class="setup-title">选 择 你 的 AI</p>
+        <p class="setup-sub">unseal your question · 占星骰</p>
+
+        <label class="setup-label">用哪个 AI 解读</label>
+        <select class="setup-select" id="setupProvider"></select>
+
+        <label class="setup-label" id="setupBaseLabel" hidden>接口地址（base url）</label>
+        <input class="setup-input" id="setupBase" type="text" placeholder="https://…/v1" hidden />
+
+        <label class="setup-label">模型</label>
+        <select class="setup-select" id="setupModel"></select>
+        <input class="setup-input" id="setupModelCustom" type="text" placeholder="手动填模型名" hidden />
+
+        <label class="setup-label">你的 API key <span class="setup-keyhint" id="setupKeyHint"></span></label>
+        <input class="setup-input" id="setupKey" type="password" placeholder="把 key 粘到这里" autocomplete="off" />
+
+        <p class="setup-note" id="setupGet"></p>
+        <p class="setup-err" id="setupErr"></p>
+
+        <button class="setup-go" id="setupGo" type="button">开 始 占 卜</button>
+        <button class="setup-skip" id="setupSkip" type="button">先用内置模板（不调 AI）</button>
+        <p class="setup-privacy">key 只保存在你自己的浏览器里，不会上传，也不发给任何人。</p>
+      </div>
+    </div>
+
+    <!-- textured backdrop (recoloured for the purple theme) -->
+    <div class="bg" aria-hidden="true"></div>
+    <!-- scattered stars (filled by JS) -->
+    <div class="stars" aria-hidden="true"></div>
+
+    <!-- slow drifting motes -->
+    <canvas id="motes" aria-hidden="true"></canvas>
+
+    <!-- atmosphere -->
+    <div class="grain" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <!-- blue / purple theme switch + AI/key settings -->
+    <div class="theme-toggle">
+      <button class="sw sw-blue" type="button" data-theme-set="blue" aria-label="蓝色"></button>
+      <button class="sw sw-purple" type="button" data-theme-set="purple" aria-label="紫色"></button>
+      <button class="ai-reset" id="aiReset" type="button" aria-label="更换 AI 或 key">AI</button>
+    </div>
+
+    <!-- global back -->
+    <button class="back" type="button" aria-label="返回">
+      <span class="back-arrow">&larr;</span><span class="back-text">返回</span>
+    </button>
+
+    <!-- ============================ HOME : the cover design ================ -->
+    <main class="home" data-layer="home">
+      <article class="cover">
+        <!-- blue envelope base (the pocket revealed when the flap opens) -->
+        <img class="cover-base" src="/textures/envelope-base.jpg" alt="" aria-hidden="true" />
+        <!-- white flap with the title — folds up around its top edge to open -->
+        <img class="cover-flap" src="/textures/envelope-flap.png" alt="Astro Dice" />
+
+        <!-- small footnotes filling the blank corners of the design -->
+        <p class="corner bl">oracle &middot; 占星骰</p>
+        <p class="corner br">mmxxvi / astra</p>
+
+        <!-- clickable hotspot over the bronze dot at the flap point -->
+        <button class="seal" type="button" aria-label="拆封"></button>
+
+        <p class="hint">tap to unseal</p>
+      </article>
+    </main>
+
+    <!-- ============= GUIDE : card pulled from the envelope, pick a question = -->
+    <section class="guide" data-layer="guide">
+      <article class="guide-card" id="guideCard">
+        <svg class="lace" aria-hidden="true"></svg>
+        <div class="guide-body">
+          <svg class="ribbon" viewBox="0 0 80 40" aria-hidden="true">
+            <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M40 14 C30 4 14 6 18 16 C21 22 34 18 40 14 Z" />
+              <path d="M40 14 C50 4 66 6 62 16 C59 22 46 18 40 14 Z" />
+              <circle cx="40" cy="14" r="3" />
+              <path d="M37 16 C32 26 28 32 24 36 M43 16 C48 26 52 32 56 36" />
+            </g>
+          </svg>
+
+          <p class="guide-note">This is just for you.</p>
+          <h2 class="guide-zh">定 下 心 念<br />投 骰 启 卦</h2>
+          <p class="guide-sub">choose what you ask</p>
+
+          <nav class="entries" aria-label="占卜入口">
+            <button class="entry" type="button" data-kind="find">
+              <svg class="silhouette" viewBox="0 0 64 64" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M24 54 h16 M27 54 q-1 -5 5 -5 q6 0 5 5
+                    M32 49 v-4
+                    M27 45 q5 -3 10 0 q0 5 -5 5 q-5 0 -5 -5 Z
+                    M32 40 v-16
+                    M28 24 q4 -2 8 0
+                    M32 24 q-4 -6 0 -12 q4 6 0 12 Z" />
+                </g>
+              </svg>
+              <span class="entry-name">寻物</span>
+            </button>
+
+            <button class="entry" type="button" data-kind="trend">
+              <svg class="silhouette" viewBox="0 0 64 64" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 34 q14 -16 24 -6 q2 -7 2 -12 q0 5 2 12
+                    q10 -10 24 6 q-12 -4 -22 6 q-2 6 -4 14
+                    q-2 -8 -4 -14 q-10 -10 -22 -6 Z" />
+                </g>
+              </svg>
+              <span class="entry-name">事件趋势</span>
+            </button>
+
+            <button class="entry" type="button" data-kind="timing">
+              <svg class="silhouette" viewBox="0 0 64 64" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M32 8 C34 26 38 30 56 32 C38 34 34 38 32 56
+                    C30 38 26 34 8 32 C26 30 30 26 32 8 Z" />
+                  <path d="M52 12 c1 6 1 6 7 7 c-6 1 -6 1 -7 7 c-1 -6 -1 -6 -7 -7 c6 -1 6 -1 7 -7 Z" />
+                </g>
+              </svg>
+              <span class="entry-name">时间应期</span>
+            </button>
+          </nav>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ ASK : type the question ============== -->
+    <section class="ask" data-layer="ask">
+      <article class="ask-card">
+        <svg class="lace" aria-hidden="true"></svg>
+        <div class="ask-body">
+          <p class="ask-kind"></p>
+          <p class="ask-prompt">写 下 你 想 问 的</p>
+          <textarea
+            class="ask-input"
+            rows="3"
+            maxlength="200"
+            placeholder="把心里的问题写下来，再投骰…"
+          ></textarea>
+          <button class="ask-go" type="button">投 骰 启 卦</button>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ STAGE : the dice ====================== -->
+    <section class="stage" data-layer="stage">
+      <canvas id="dice"></canvas>
+      <div class="stage-kind"></div>
+      <div class="rolllabels">
+        <figure class="rolllabel" data-slot="planet">
+          <span class="rl-kind">Planet</span><span class="rl-value">—</span>
+        </figure>
+        <figure class="rolllabel" data-slot="sign">
+          <span class="rl-kind">Sign</span><span class="rl-value">—</span>
+        </figure>
+        <figure class="rolllabel" data-slot="house">
+          <span class="rl-kind">House</span><span class="rl-value">—</span>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============================ RESULT : the letter =================== -->
+    <section class="result" data-layer="result">
+      <article class="letter" id="letter">
+        <svg class="lace" aria-hidden="true"></svg>
+        <div class="letter-body">
+          <p class="letter-script"></p>
+          <p class="letter-kind"></p>
+          <p class="letter-question"></p>
+          <div class="letter-lines"></div>
+          <div class="letter-reading">
+            <p class="letter-loading">星 象 正 在 解 读…</p>
+            <p class="letter-conclusion"></p>
+            <p class="letter-text"></p>
+          </div>
+          <p class="letter-foot">astrolabe &middot; 占星骰 &middot; mmxxvi</p>
+        </div>
+      </article>
+      <div class="result-actions">
+        <button class="act" data-act="save" type="button">保存结果</button>
+        <button class="act" data-act="share" type="button">分享</button>
+        <button class="act ghost" data-act="again" type="button">再问一次</button>
+      </div>
+    </section>
+
+  </body>
+</html>
