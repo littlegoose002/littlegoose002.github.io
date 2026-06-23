@@ -13,10 +13,25 @@
       href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="/assets/index-Cfi9Ev2O.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BrqCZQmf.css">
+    <script type="module" crossorigin src="/assets/main-CHLoXuxc.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/supabase-CWL10OUq.js">
+    <link rel="stylesheet" crossorigin href="/assets/main-DO5kAiH6.css">
   </head>
   <body>
+    <!-- activation code gate -->
+    <div class="gate" id="gate">
+      <article class="gate-card">
+        <p class="gate-mark">members only</p>
+        <h1 class="gate-title">拆 封 问 卜</h1>
+        <p class="gate-sub">enter your activation code</p>
+        <input class="gate-input" id="gateCode" type="text"
+          placeholder="请输入激活码" autocomplete="off" spellcheck="false" />
+        <button class="gate-go" id="gateGo" type="button">验 证</button>
+        <p class="gate-err" id="gateErr"></p>
+        <p class="gate-note">激活码由管理员发放，仅在有效期内可用</p>
+      </article>
+    </div>
+
     <!-- BYOK setup: choose an AI + paste your own key (stored only in this browser) -->
     <div class="setup" id="setup">
       <div class="setup-card">

@@ -1,0 +1,13 @@
+import{t as e}from"./supabase-CWL10OUq.js";var t=e=>document.querySelector(e),n=``;function r(e){if(!e)return`—`;let t=new Date(e);return`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,`0`)}-${String(t.getDate()).padStart(2,`0`)}`}function i(e){return e.disabled_at?`已停用`:new Date(e.expires_at)<new Date?`已过期`:`有效（剩${Math.ceil((new Date(e.expires_at)-new Date)/864e5)}天）`}function a(e){return e.disabled_at?`st-off`:new Date(e.expires_at)<new Date?`st-expired`:`st-on`}async function o(){let s=await e(`admin_list_codes`,{pass:n});if(!s.ok)return;let c=s.codes||[],l=t(`#codeBody`),u=t(`#codeEmpty`);l.innerHTML=``,u.hidden=c.length>0;for(let e of c){let t=document.createElement(`tr`);t.innerHTML=`
+      <td>${e.label||`—`}</td>
+      <td>${r(e.expires_at)}</td>
+      <td><span class="st ${a(e)}">${i(e)}</span></td>
+      <td>${r(e.last_used_at)}</td>
+      <td class="adm-actions">
+        <button class="adm-btn adm-btn-small" data-toggle="${e.id}">
+          ${e.disabled_at?`启用`:`停用`}
+        </button>
+        <button class="adm-btn adm-btn-small adm-btn-danger" data-delete="${e.id}">
+          删除
+        </button>
+      </td>`,l.appendChild(t)}l.querySelectorAll(`[data-toggle]`).forEach(t=>t.addEventListener(`click`,async()=>{await e(`admin_toggle_code`,{pass:n,code_id:t.dataset.toggle}),o()})),l.querySelectorAll(`[data-delete]`).forEach(t=>t.addEventListener(`click`,async()=>{confirm(`确定要删除这个激活码吗？`)&&(await e(`admin_delete_code`,{pass:n,code_id:t.dataset.delete}),o())}))}async function s(){let r=t(`#admPass`).value.trim();r&&((await e(`admin_login`,{pass:r})).ok?(n=r,t(`#admLogin`).hidden=!0,t(`#admDash`).hidden=!1,o()):t(`#admLoginErr`).textContent=`密码错误`)}async function c(){let r=t(`#newLabel`).value.trim(),i=t(`#newExpiry`).value,a=t(`#newNotes`).value.trim();if(!r||!i){alert(`请填写学员名称和有效期`);return}let s=await e(`admin_create_code`,{pass:n,code_label:r,code_expires_at:new Date(i+`T23:59:59`).toISOString(),code_notes:a});s.ok?(t(`#newCodeValue`).textContent=s.code,t(`#newCodeBox`).hidden=!1,t(`#newLabel`).value=``,t(`#newNotes`).value=``,o()):alert(`生成失败：`+(s.error||`未知错误`))}function l(){let e=t(`#newCodeValue`).textContent;navigator.clipboard.writeText(e).then(()=>{t(`#copyBtn`).textContent=`已复制`,setTimeout(()=>t(`#copyBtn`).textContent=`复制激活码`,2e3)})}t(`#admLoginGo`).addEventListener(`click`,s),t(`#admPass`).addEventListener(`keydown`,e=>{e.key===`Enter`&&s()}),t(`#createBtn`).addEventListener(`click`,c),t(`#copyBtn`).addEventListener(`click`,l);var u=new Date;u.setDate(u.getDate()+30),t(`#newExpiry`).value=u.toISOString().split(`T`)[0];

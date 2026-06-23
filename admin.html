@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Astrolabe · 管理后台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Cormorant:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/assets/admin-D6n5O9fM.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/supabase-CWL10OUq.js">
+    <link rel="stylesheet" crossorigin href="/assets/admin-BNY491Da.css">
+  </head>
+  <body>
+    <!-- admin login -->
+    <div class="adm-login" id="admLogin">
+      <article class="adm-login-card">
+        <p class="adm-mark">administration</p>
+        <h1 class="adm-login-title">管 理 后 台</h1>
+        <p class="adm-login-sub">astrolabe · activation codes</p>
+        <input class="adm-input" id="admPass" type="password" placeholder="管理密码" autocomplete="current-password" />
+        <button class="adm-btn adm-btn-primary" id="admLoginGo" type="button">登 录</button>
+        <p class="adm-err" id="admLoginErr"></p>
+      </article>
+    </div>
+
+    <!-- dashboard (hidden until login) -->
+    <div class="adm-dash" id="admDash" hidden>
+      <header class="adm-header">
+        <h1 class="adm-header-title">激活码管理</h1>
+        <a class="adm-header-link" href="/">返回骰子</a>
+      </header>
+
+      <!-- create code -->
+      <section class="adm-section">
+        <h2 class="adm-section-title">生成激活码</h2>
+        <div class="adm-form">
+          <div class="adm-field">
+            <label class="adm-label">学员名称</label>
+            <input class="adm-input" id="newLabel" type="text" placeholder="如：张三" />
+          </div>
+          <div class="adm-field">
+            <label class="adm-label">有效期至</label>
+            <input class="adm-input" id="newExpiry" type="date" />
+          </div>
+          <div class="adm-field">
+            <label class="adm-label">备注（可选）</label>
+            <input class="adm-input" id="newNotes" type="text" placeholder="如：第一期学员" />
+          </div>
+          <button class="adm-btn adm-btn-primary" id="createBtn" type="button">生 成</button>
+        </div>
+
+        <!-- newly created code display -->
+        <div class="adm-newcode" id="newCodeBox" hidden>
+          <p class="adm-newcode-hint">激活码已生成，请立即复制发给学员（只显示一次）：</p>
+          <p class="adm-newcode-value" id="newCodeValue"></p>
+          <button class="adm-btn adm-btn-small" id="copyBtn" type="button">复制激活码</button>
+        </div>
+      </section>
+
+      <!-- code list -->
+      <section class="adm-section">
+        <h2 class="adm-section-title">已发放的激活码</h2>
+        <div class="adm-table-wrap">
+          <table class="adm-table" id="codeTable">
+            <thead>
+              <tr>
+                <th>学员</th>
+                <th>有效期至</th>
+                <th>状态</th>
+                <th>最近使用</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="codeBody"></tbody>
+          </table>
+          <p class="adm-empty" id="codeEmpty">暂无激活码</p>
+        </div>
+      </section>
+    </div>
+
+  </body>
+</html>
