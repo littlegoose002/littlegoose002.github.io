@@ -500,6 +500,8 @@
     .settings-form { display: grid; gap: 8px; margin-top: 14px; }
     .settings-form input { width: 100%; min-height: 40px; padding: 9px 12px; border: 1px solid var(--hair); border-radius: 12px; color: var(--ink); background: var(--inset); font-size: 11px; outline: 0; }
     .settings-form input:focus { border-color: color-mix(in srgb, var(--ink) 28%, transparent); }
+    .password-row { display: grid; gap: 6px; }
+    .account-hint { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
     .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     .settings-actions button { min-height: 35px; padding: 8px 13px; border: 1px solid var(--hair); border-radius: 999px; color: var(--ink-2); background: transparent; font-size: 10px; }
     .settings-actions button.primary { color: var(--surface); border-color: var(--ink); background: var(--ink); }
@@ -737,7 +739,12 @@
         <form class="settings-form" id="cloud-login-form">
           <label class="sr-only" for="cloud-email">同步账户邮箱</label>
           <input id="cloud-email" name="email" type="email" autocomplete="email" placeholder="输入用于同步的邮箱" required>
-          <div class="settings-actions"><button class="primary" id="send-login-link" type="submit">发送登录链接</button><button id="sync-now" type="button">立即同步</button><button id="cloud-sign-out" type="button">断开云端</button></div>
+          <div class="password-row">
+            <label class="sr-only" for="cloud-password">同步账户密码</label>
+            <input id="cloud-password" name="password" type="password" autocomplete="current-password" minlength="6" placeholder="输入同步密码（至少 6 位）" required>
+            <p class="account-hint">第一次使用请先注册。到邮箱点一次确认链接后，回到这里登录；以后无需再收邮件。</p>
+          </div>
+          <div class="settings-actions"><button class="primary" id="cloud-sign-in" type="submit">登录并同步</button><button id="cloud-sign-up" type="button">第一次使用，注册账户</button><button id="sync-now" type="button">立即同步</button><button id="cloud-sign-out" type="button">断开云端</button></div>
         </form>
       </section>
       <section class="settings-section">
@@ -936,18 +943,50 @@
       return cloudSession;
     }
 
-    async function sendMagicLink(email) {
+    function acceptCloudSession(data, email) {
+      const claims = decodeJwt(data.access_token);
+      cloudSession = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
+        user: data.user || { id: claims.sub, email: claims.email || email }
+      };
+      persistCloudSession();
+      updateCloudUi();
+    }
+
+    async function signInWithPassword(email, password) {
       if (!cloudReady) throw new Error('云端项目尚未配置');
-      const redirectTo = `${location.origin}${location.pathname}`;
-      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: cloudHeaders(cloudConfig.supabasePublishableKey),
-        body: JSON.stringify({ email, create_user: true })
+        body: JSON.stringify({ email, password })
       });
-      if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
-        throw new Error(detail.msg || detail.message || '登录链接发送失败');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.access_token || !data.refresh_token) {
+        throw new Error(data.msg || data.message || '邮箱或密码不正确；首次使用请先注册并确认邮箱');
       }
+      acceptCloudSession(data, email);
+      await syncAll();
+    }
+
+    async function signUpWithPassword(email, password) {
+      if (!cloudReady) throw new Error('云端项目尚未配置');
+      const redirectTo = `${location.origin}${location.pathname}`;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`, {
+        method: 'POST',
+        headers: cloudHeaders(cloudConfig.supabasePublishableKey),
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.msg || data.message || '注册暂时失败');
+      if (Array.isArray(data.user?.identities) && data.user.identities.length === 0) return 'exists';
+      if (data.access_token && data.refresh_token) {
+        acceptCloudSession(data, email);
+        await syncAll();
+        return 'ready';
+      }
+      return 'confirm';
     }
 
     function localRecord(key) {
@@ -1037,14 +1076,16 @@
       const connected = Boolean(cloudReady && cloudSession);
       el('cloud-login-form').classList.toggle('connected', connected);
       el('cloud-email').disabled = connected || !cloudReady;
-      el('send-login-link').disabled = connected || !cloudReady;
+      el('cloud-password').disabled = connected || !cloudReady;
+      el('cloud-sign-in').disabled = connected || !cloudReady;
+      el('cloud-sign-up').disabled = connected || !cloudReady;
       el('sync-now').disabled = !connected || !navigator.onLine;
       el('cloud-sign-out').disabled = !connected;
       el('cloud-description').textContent = !cloudReady
         ? '同步结构已经准备好。部署时填入个人 Supabase 项目的 Project URL 与 Publishable Key 后即可连接；管理员密钥不会进入网页。'
         : connected
           ? `${cloudSession.user?.email || '个人账户'} 已连接。采用最后修改时间合并，每次输入仍先保存在本机。`
-          : '输入邮箱后会收到一次性登录链接。登录后，每个日期的草稿与归档记录会在设备之间同步。';
+          : '使用邮箱和密码连接个人账户后，每个日期的草稿与归档记录会在设备之间同步。';
       setCloudStatus(connected ? (navigator.onLine ? 'pending' : 'offline') : 'local');
     }
 
@@ -1346,14 +1387,33 @@
     el('cloud-login-form').addEventListener('submit', async event => {
       event.preventDefault();
       const email = el('cloud-email').value.trim();
-      if (!email) return;
-      el('send-login-link').disabled = true;
+      const password = el('cloud-password').value;
+      if (!email || password.length < 6) return showToast('请输入邮箱和至少 6 位密码');
+      el('cloud-sign-in').disabled = true;
       try {
-        await sendMagicLink(email);
-        showToast('登录链接已经发到邮箱');
-        el('cloud-description').textContent = '请在这台设备上打开邮件里的登录链接。返回后会自动开始第一次同步。';
-      } catch (error) { showToast(error.message || '登录链接发送失败'); }
+        await signInWithPassword(email, password);
+        showToast('云端已经连接并完成第一次同步');
+      } catch (error) { showToast(error.message || '登录失败'); }
       finally { updateCloudUi(); }
+    });
+    el('cloud-sign-up').addEventListener('click', async () => {
+      const email = el('cloud-email').value.trim();
+      const password = el('cloud-password').value;
+      if (!email || password.length < 6) return showToast('请输入邮箱和至少 6 位密码');
+      el('cloud-sign-up').disabled = true;
+      try {
+        const state = await signUpWithPassword(email, password);
+        updateCloudUi();
+        if (state === 'ready') showToast('账户已创建，云端同步已经连接');
+        else if (state === 'exists') showToast('这个邮箱已注册，请直接点“登录并同步”');
+        else {
+          showToast('确认邮件已发送，请点邮件链接后回到这里登录');
+          el('cloud-description').textContent = '确认邮件已经发出。点一次邮件里的确认链接，再回到应用点“登录并同步”。';
+        }
+      } catch (error) {
+        updateCloudUi();
+        showToast(error.message || '注册失败');
+      }
     });
     el('sync-now').addEventListener('click', () => syncAll());
     el('cloud-sign-out').addEventListener('click', async () => {
