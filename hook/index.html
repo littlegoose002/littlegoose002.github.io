@@ -1,0 +1,1491 @@
+<!doctype html>
+<html lang="zh-CN" data-air-os="1" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#eceef1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="灵感日历">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/hook-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/hook-180.png">
+  <title>HOOK · 灵感日历</title>
+  <style>
+    :root {
+      --font: "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", system-ui, sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --ease: cubic-bezier(.22,.61,.36,1);
+      --bg: #eceef1;
+      --surface: #f8f9fa;
+      --inset: #f0f1f4;
+      --ink: #14151a;
+      --ink-2: #5b5e66;
+      --ink-3: #9498a1;
+      --ink-4: #c4c8d0;
+      --hair: rgba(20,21,26,.08);
+      --core: #0b0b0d;
+      --core-ink: #f7f8fa;
+      --radius: 26px;
+      --radius-sm: 15px;
+      --shadow: 0 1px 2px rgba(20,21,26,.03), 0 20px 48px -34px rgba(20,21,26,.3);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0a0a0c;
+      --surface: #141519;
+      --inset: #1b1c21;
+      --ink: #f3f4f6;
+      --ink-2: #a9adb6;
+      --ink-3: #6f737c;
+      --ink-4: #3d4048;
+      --hair: rgba(255,255,255,.08);
+      --core: #f7f8fa;
+      --core-ink: #0b0b0d;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 20px 48px -30px rgba(0,0,0,.75);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 80% -10%, color-mix(in srgb, var(--surface) 86%, transparent), transparent 40%),
+        var(--bg);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      transition: color .45s var(--ease), background .45s var(--ease);
+    }
+    button, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+    .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    .shell {
+      width: min(calc(100% - 32px), 1480px);
+      margin: 0 auto;
+      padding: max(14px, env(safe-area-inset-top)) 0 max(42px, env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 2px 12px;
+      border-bottom: 1px solid var(--hair);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 29px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: var(--surface);
+      background: var(--ink);
+      font: 12px var(--mono);
+    }
+    .brand strong { display: block; font-size: 12px; font-weight: 600; letter-spacing: -.02em; }
+    .brand small { display: block; margin-top: 2px; color: var(--ink-3); font: 7px var(--mono); letter-spacing: 1.6px; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .quiet-button, .icon-button, .primary-button, .ghost-core, .chip {
+      border: 1px solid var(--hair);
+      background: transparent;
+      transition: transform .18s var(--ease), background .22s var(--ease), color .22s var(--ease), border-color .22s var(--ease);
+    }
+    .quiet-button { min-height: 34px; padding: 7px 13px; border-radius: 999px; color: var(--ink-2); font-size: 11px; }
+    .quiet-button:hover, .icon-button:hover, .chip:hover { background: var(--inset); transform: translateY(-1px); }
+    .quiet-button:active, .icon-button:active, .primary-button:active, .ghost-core:active { transform: scale(.97); }
+
+    .hero {
+      min-height: 104px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 28px;
+      padding: 18px 2px 16px;
+    }
+    .hero-lockup { min-width: 0; display: flex; align-items: flex-end; gap: 22px; }
+    .wordmark {
+      margin: 0 22px -7px 0;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: clamp(70px, 9vw, 132px);
+      font-weight: 400;
+      line-height: .7;
+      letter-spacing: -.105em;
+      transform: scaleX(1.17);
+      transform-origin: left bottom;
+    }
+    .hero-copy { min-width: 160px; padding-bottom: 2px; }
+    .eyebrow { margin: 0 0 7px; color: var(--ink-3); font: 8px/1 var(--mono); letter-spacing: 2px; text-transform: uppercase; }
+    .hero-copy h1 { margin: 0; font-size: 18px; font-weight: 450; letter-spacing: -.04em; }
+    .hero-copy p { margin: 6px 0 0; color: var(--ink-3); font-size: 10px; }
+    .date-control { display: flex; align-items: center; gap: 7px; }
+    .icon-button { width: 34px; height: 34px; padding: 0; border-radius: 50%; color: var(--ink-2); background: var(--surface); }
+    .date-readout { min-width: 176px; text-align: right; }
+    .date-readout strong { display: block; font-size: 20px; font-weight: 380; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .date-readout span { display: block; margin-top: 4px; color: var(--ink-3); font: 8px var(--mono); letter-spacing: 1.5px; }
+
+    .demo-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      padding: 7px 12px;
+      border: 1px solid var(--hair);
+      border-radius: 10px;
+      color: var(--ink-3);
+      background: color-mix(in srgb, var(--surface) 68%, transparent);
+      font: 8px/1.5 var(--mono);
+      letter-spacing: 1px;
+    }
+    .demo-strip b { color: var(--ink-2); font-weight: 550; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+    .panel {
+      min-width: 0;
+      padding: 19px;
+      border: 1px solid var(--hair);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .panel-head span { color: var(--ink-3); font: 9px var(--mono); letter-spacing: 1.7px; text-transform: uppercase; }
+    .panel-head small { color: var(--ink-4); font-size: 10px; }
+
+    .calendar-panel { grid-column: span 4; min-height: 332px; }
+    .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 11px; }
+    .month-nav strong { font-size: 24px; font-weight: 380; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+    .month-actions { display: flex; gap: 5px; }
+    .month-actions button { width: 28px; height: 28px; border: 1px solid var(--hair); border-radius: 50%; color: var(--ink-3); background: transparent; }
+    .weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .weekdays { margin-bottom: 4px; }
+    .weekdays span { padding: 3px 0; color: var(--ink-4); text-align: center; font: 7px var(--mono); }
+    .day {
+      position: relative;
+      min-width: 0;
+      height: 31px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 10px;
+      color: var(--ink-2);
+      background: transparent;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+    .day.outside { color: var(--ink-4); }
+    .day:hover { background: var(--inset); }
+    .day.today::after { content: ""; position: absolute; bottom: 4px; width: 3px; height: 3px; border-radius: 50%; background: var(--ink-3); }
+    .day.has-note::before { content: attr(data-count); position: absolute; top: 2px; right: 3px; color: var(--ink-3); font: 6px var(--mono); }
+    .day.selected { color: var(--surface); background: var(--ink); }
+    .day.selected.today::after { background: var(--surface); }
+    .calendar-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--hair); color: var(--ink-3); font-size: 9px; }
+
+    .memo-panel {
+      grid-column: span 8;
+      min-height: 332px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      color: var(--core-ink);
+      background: var(--core);
+      border-color: transparent;
+      box-shadow: 0 28px 70px -46px rgba(0,0,0,.75);
+    }
+    .memo-panel .panel-head span, .memo-panel .panel-head small { color: color-mix(in srgb, var(--core-ink) 42%, transparent); }
+    .memo-headline { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+    .memo-headline h2 { margin: 0; font-size: 28px; font-weight: 350; letter-spacing: -.05em; }
+    .memo-headline b { color: color-mix(in srgb, var(--core-ink) 46%, transparent); font: 8px var(--mono); letter-spacing: 1px; }
+    .memo-editor {
+      width: 100%;
+      min-height: 154px;
+      resize: none;
+      padding: 14px 0;
+      border: 0;
+      border-top: 1px solid color-mix(in srgb, var(--core-ink) 9%, transparent);
+      border-bottom: 1px solid color-mix(in srgb, var(--core-ink) 9%, transparent);
+      outline: 0;
+      color: var(--core-ink);
+      background: transparent;
+      font-size: clamp(17px, 1.7vw, 24px);
+      font-weight: 330;
+      line-height: 1.65;
+      letter-spacing: -.025em;
+      caret-color: var(--core-ink);
+    }
+    .memo-editor::placeholder { color: color-mix(in srgb, var(--core-ink) 27%, transparent); }
+    .memo-editor:focus { border-top-color: color-mix(in srgb, var(--core-ink) 24%, transparent); }
+    .memo-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 13px; }
+    .save-state { color: color-mix(in srgb, var(--core-ink) 42%, transparent); font: 8px var(--mono); letter-spacing: 1px; }
+    .memo-actions { display: flex; gap: 8px; }
+    .ghost-core, .primary-button { min-height: 34px; padding: 7px 13px; border-radius: 999px; font-size: 10px; }
+    .ghost-core { color: color-mix(in srgb, var(--core-ink) 70%, transparent); border-color: color-mix(in srgb, var(--core-ink) 15%, transparent); }
+    .ghost-core:hover { border-color: color-mix(in srgb, var(--core-ink) 36%, transparent); }
+    .primary-button { color: var(--core); background: var(--core-ink); border-color: transparent; }
+
+    .brief-panel { grid-column: span 4; min-height: 246px; }
+    .brief-lead { margin-bottom: 13px; }
+    .brief-lead h3 { margin: 0 0 7px; font-size: 23px; font-weight: 420; line-height: 1.28; letter-spacing: -.045em; }
+    .brief-lead p { margin: 0; color: var(--ink-3); font-size: 10px; line-height: 1.65; }
+    .transit-list { display: grid; gap: 0; }
+    .transit { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--hair); }
+    .transit time { color: var(--ink-4); font: 7px var(--mono); }
+    .transit span { min-width: 0; color: var(--ink-2); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lucky-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+    .lucky-row div { padding: 8px; border-radius: 11px; background: var(--inset); }
+    .lucky-row small { display: block; color: var(--ink-4); font: 7px var(--mono); letter-spacing: 1px; }
+    .lucky-row b { display: block; margin-top: 6px; font-size: 13px; font-weight: 500; }
+
+    .inspiration-panel { grid-column: span 5; min-height: 246px; display: grid; grid-template-rows: auto auto 1fr auto; }
+    .signs { display: flex; gap: 4px; margin: -3px 0 11px; overflow-x: auto; scrollbar-width: none; }
+    .signs::-webkit-scrollbar { display: none; }
+    .chip { flex: 0 0 auto; min-width: 29px; height: 27px; padding: 0 8px; border-radius: 999px; color: var(--ink-3); font-size: 9px; }
+    .chip.active { color: var(--surface); background: var(--ink); border-color: var(--ink); }
+    .hook-meta { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+    .hook-meta strong { font-size: 21px; font-weight: 420; letter-spacing: -.04em; }
+    .hook-meta span { color: var(--ink-3); font: 8px var(--mono); letter-spacing: 1.3px; }
+    .hook-copy { margin: 0; font-size: 18px; line-height: 1.85; letter-spacing: -.025em; }
+    .card-actions { align-self: end; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; }
+    .text-button { padding: 0; border: 0; border-bottom: 1px solid var(--hair); color: var(--ink-3); background: transparent; font-size: 10px; }
+    .text-button:hover { color: var(--ink); }
+
+    .oracle-panel {
+      grid-column: span 3;
+      min-height: 246px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+      position: relative;
+    }
+    .oracle-panel::after { content: "“"; position: absolute; right: 8px; top: 38px; color: var(--inset); font: 120px/1 Georgia, serif; pointer-events: none; }
+    .oracle-copy { position: relative; z-index: 1; align-self: center; }
+    .oracle-copy blockquote { margin: 0; font-size: 17px; line-height: 1.5; letter-spacing: -.03em; }
+    .oracle-copy cite { display: block; margin-top: 13px; color: var(--ink-3); font: normal 7px var(--mono); letter-spacing: 1.2px; }
+    .oracle-panel.reveal .oracle-copy { animation: cardReveal .42s var(--ease) both; }
+    @keyframes cardReveal { from { opacity: 0; transform: translateY(6px); } }
+
+    .page-foot { display: flex; justify-content: space-between; gap: 20px; margin-top: 15px; padding: 12px 2px 0; border-top: 1px solid var(--hair); color: var(--ink-4); font: 7px/1.6 var(--mono); letter-spacing: 1px; }
+
+    .drawer-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(5,5,7,.32); opacity: 0; pointer-events: none; transition: opacity .25s var(--ease); }
+    .drawer {
+      position: fixed;
+      z-index: 21;
+      top: 12px;
+      right: 12px;
+      bottom: 12px;
+      width: min(430px, calc(100% - 24px));
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 23px;
+      border: 1px solid var(--hair);
+      border-radius: 24px;
+      background: var(--surface);
+      box-shadow: 0 34px 90px rgba(0,0,0,.28);
+      opacity: 0;
+      pointer-events: none;
+      transform: none;
+      transition: opacity .22s ease;
+    }
+    .drawer.open { opacity: 1; pointer-events: auto; transform: none; }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--hair); }
+    .drawer-head h2 { margin: 0; font-size: 24px; font-weight: 420; letter-spacing: -.045em; }
+    .drawer-head p { margin: 5px 0 0; color: var(--ink-3); font-size: 9px; }
+    .close-button { width: 34px; height: 34px; border: 1px solid var(--hair); border-radius: 50%; background: transparent; }
+    .archive { overflow-y: auto; padding-top: 6px; }
+    .archive-empty { margin: 28px 0; color: var(--ink-3); font-size: 12px; }
+    .archive-item { padding: 16px 0; border-bottom: 1px solid var(--hair); }
+    .archive-item time { color: var(--ink-4); font: 7px var(--mono); letter-spacing: 1px; }
+    .archive-item p { margin: 8px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+
+    .toast {
+      position: fixed;
+      z-index: 30;
+      left: 50%;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: var(--surface);
+      background: var(--ink);
+      box-shadow: 0 14px 38px rgba(0,0,0,.22);
+      font-size: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 8px);
+      transition: opacity .2s ease, transform .24s var(--ease);
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1080px) {
+      .shell { width: min(calc(100% - 24px), 1480px); }
+      .panel { padding: 17px; }
+      .wordmark { font-size: 78px; }
+      .calendar-panel { grid-column: span 5; }
+      .memo-panel { grid-column: span 7; }
+      .brief-panel { grid-column: span 4; }
+      .inspiration-panel { grid-column: span 5; }
+      .oracle-panel { grid-column: span 3; }
+    }
+
+    @media (max-width: 880px) {
+      .hero { grid-template-columns: 1fr; align-items: start; gap: 18px; }
+      .date-control { justify-content: flex-end; }
+      .calendar-panel, .memo-panel { grid-column: 1 / -1; }
+      .brief-panel, .inspiration-panel { grid-column: span 6; }
+      .oracle-panel { grid-column: 1 / -1; min-height: 210px; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(calc(100% - 18px), 1480px); }
+      .topbar { align-items: flex-start; }
+      .top-actions .quiet-button:first-child { display: none; }
+      .hero-lockup { display: block; }
+      .wordmark { width: max-content; max-width: 100%; margin: 0 0 14px; font-size: 68px; }
+      .hero-copy { padding-left: 2px; }
+      .date-control { justify-content: space-between; }
+      .date-readout { flex: 1; text-align: center; }
+      .demo-strip { align-items: flex-start; flex-direction: column; gap: 3px; }
+      .grid { grid-template-columns: 1fr; }
+      .panel { grid-column: 1 / -1; border-radius: 22px; }
+      .memo-panel { min-height: 400px; }
+      .memo-foot { align-items: flex-start; flex-direction: column; }
+      .memo-actions { width: 100%; }
+      .memo-actions button { flex: 1; }
+      .lucky-row { gap: 5px; }
+      .page-foot { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+      .drawer, .toast, .quiet-button, .icon-button, .chip { transition-duration: .01ms !important; }
+    }
+
+    @media print {
+      :root, [data-theme="dark"] { --bg: #fff; --surface: #fff; --ink: #111; --ink-2: #333; --ink-3: #666; --ink-4: #888; --hair: rgba(0,0,0,.14); --core: #111; --core-ink: #fff; }
+      body { background: #fff; }
+      .shell { width: 100%; padding: 0; }
+      .top-actions, .date-control button, .demo-strip, .card-actions, .memo-actions, .drawer, .drawer-backdrop, .toast { display: none !important; }
+      .panel { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+  <style>
+    /* V2 · 星象日历与 iPad 右侧备忘栏 */
+    .top-actions { flex-wrap: wrap; justify-content: flex-end; }
+    #layout-reset { display: none; }
+    body.layout-edit #layout-reset { display: inline-flex; }
+
+    .dashboard {
+      --memo-w: 38vw;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 12px minmax(340px, var(--memo-w));
+      align-items: start;
+      gap: 0;
+    }
+    .left-stack { min-width: 0; display: grid; gap: 14px; }
+    .support-grid { min-width: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+    .support-grid .brief-panel { grid-column: span 6; }
+    .support-grid .inspiration-panel { grid-column: span 6; }
+    .support-grid .oracle-panel { grid-column: 1 / -1; }
+    .support-grid .widget.full { grid-column: 1 / -1; }
+
+    .widget { position: relative; min-width: 0; overflow: auto; }
+    .widget-controls { display: none; align-items: center; gap: 4px; }
+    body.layout-edit .widget-controls { display: flex; }
+    body.layout-edit .widget { outline: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); outline-offset: -5px; }
+    .widget-controls button {
+      min-width: 24px;
+      height: 24px;
+      padding: 0 6px;
+      border: 1px solid var(--hair);
+      border-radius: 8px;
+      color: var(--ink-3);
+      background: transparent;
+      font: 9px var(--mono);
+    }
+    .widget-controls button:hover { color: var(--ink); background: var(--inset); }
+    .panel-meta { display: flex; align-items: center; gap: 8px; }
+
+    .splitter {
+      position: sticky;
+      top: 12px;
+      height: min(740px, calc(100vh - 24px));
+      display: grid;
+      place-items: center;
+      cursor: col-resize;
+      touch-action: none;
+      user-select: none;
+    }
+    .splitter::before { content: ""; width: 1px; height: 100%; background: var(--hair); transition: width .2s var(--ease), background .2s var(--ease); }
+    .splitter::after { content: ""; position: absolute; width: 5px; height: 52px; border-left: 1px solid var(--ink-4); border-right: 1px solid var(--ink-4); opacity: .45; }
+    .splitter:hover::before, body.layout-edit .splitter::before { width: 2px; background: var(--ink-3); }
+
+    .astro-panel { height: var(--astro-h, 424px); padding: 19px 20px; }
+    .astro-layout { min-width: 0; height: calc(100% - 34px); display: grid; grid-template-columns: minmax(252px, .76fr) minmax(0, 1.24fr); gap: 18px; }
+    .calendar-zone { min-width: 0; padding-right: 18px; border-right: 1px solid var(--hair); }
+    .sky-zone { min-width: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    .sky-overview { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 13px; align-items: center; }
+    .moon-disc {
+      width: 46px;
+      aspect-ratio: 1;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--hair);
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: inset -10px 0 18px rgba(255,255,255,.12);
+    }
+    .moon-disc::after { content: ""; position: absolute; inset: 3px 15px 3px 3px; border-radius: 50%; background: var(--surface); }
+    .sky-title h2 { margin: 0; font-size: 23px; font-weight: 410; line-height: 1.1; letter-spacing: -.045em; }
+    .sky-title p { margin: 5px 0 0; color: var(--ink-3); font-size: 9px; line-height: 1.5; }
+    .motion-row { display: flex; gap: 5px; margin: 12px 0 9px; overflow-x: auto; scrollbar-width: none; }
+    .motion-row::-webkit-scrollbar { display: none; }
+    .motion-tag { flex: 0 0 auto; padding: 5px 8px; border: 1px solid var(--hair); border-radius: 999px; color: var(--ink-3); font: 7px var(--mono); letter-spacing: .45px; }
+    .motion-tag.retro { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 22%, transparent); }
+    .astro-events { min-height: 0; overflow-y: auto; border-top: 1px solid var(--hair); }
+    .astro-event { display: grid; grid-template-columns: 44px 30px minmax(0, 1fr); column-gap: 14px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--hair); }
+    .astro-event time { color: var(--ink-4); font: 7px var(--mono); }
+    .astro-mark { width: 24px; height: 24px; display: grid; place-items: center; color: var(--ink-2); }
+    .astro-mark svg { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+    .astro-event strong { display: block; font-size: 10px; font-weight: 520; }
+    .astro-event small { display: block; margin-top: 2px; color: var(--ink-3); font-size: 8px; line-height: 1.4; }
+    .astro-empty { margin: 18px 0; color: var(--ink-3); font-size: 10px; line-height: 1.7; }
+    .source-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; color: var(--ink-4); font: 6px var(--mono); letter-spacing: .5px; }
+    .source-line a { color: var(--ink-3); text-decoration: underline; text-underline-offset: 2px; }
+    .calendar-legend { display: flex; gap: 12px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--hair); color: var(--ink-3); font-size: 8px; }
+    .calendar-legend i { display: inline-block; width: 5px; height: 5px; margin-right: 4px; border-radius: 50%; background: var(--ink); }
+    .calendar-legend b { margin-right: 4px; font: 7px var(--mono); }
+    .day { overflow: hidden; }
+    .event-marker { position: absolute; bottom: 3px; left: 50%; width: 9px; height: 2px; border-radius: 2px; background: var(--ink-3); transform: translateX(-50%); }
+    .day.selected .event-marker { background: var(--surface); }
+    .day.today::after { left: 6px; bottom: 4px; }
+
+    .memo-panel {
+      grid-column: auto;
+      position: sticky;
+      top: 12px;
+      height: var(--memo-h, min(740px, calc(100vh - 24px)));
+      min-height: 590px;
+      max-height: calc(100vh - 24px);
+      padding: 22px;
+    }
+    .memo-panel > div { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    .memo-editor { height: 100%; min-height: 390px; }
+    .memo-panel .widget-controls button { color: color-mix(in srgb, var(--core-ink) 48%, transparent); border-color: color-mix(in srgb, var(--core-ink) 14%, transparent); }
+    .memo-panel .widget-controls button:hover { color: var(--core-ink); background: color-mix(in srgb, var(--core-ink) 8%, transparent); }
+    .memo-tools { display: flex; align-items: center; gap: 9px; }
+    .sync-button { padding: 0 0 2px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--core-ink) 22%, transparent); color: color-mix(in srgb, var(--core-ink) 48%, transparent); background: transparent; font: 7px var(--mono); letter-spacing: .8px; }
+    .sync-button:hover { color: var(--core-ink); }
+    .sync-dot { width: 5px; height: 5px; border-radius: 50%; background: color-mix(in srgb, var(--core-ink) 26%, transparent); }
+    .sync-dot.online { background: var(--core-ink); }
+
+    .device-panel { overflow-y: auto; padding-top: 6px; }
+    .settings-section { padding: 18px 0; border-bottom: 1px solid var(--hair); }
+    .settings-section:last-child { border-bottom: 0; }
+    .settings-label { margin: 0 0 7px; color: var(--ink-4); font: 7px var(--mono); letter-spacing: 1.6px; text-transform: uppercase; }
+    .settings-section h3 { margin: 0; font-size: 17px; font-weight: 450; letter-spacing: -.035em; }
+    .settings-section p { margin: 8px 0 0; color: var(--ink-3); font-size: 10px; line-height: 1.7; }
+    .settings-status { display: flex; align-items: center; gap: 9px; margin-top: 13px; color: var(--ink-2); font-size: 10px; }
+    .settings-status i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-4); }
+    .settings-status.connected i { background: var(--ink); }
+    .settings-form { display: grid; gap: 8px; margin-top: 14px; }
+    .settings-form input { width: 100%; min-height: 40px; padding: 9px 12px; border: 1px solid var(--hair); border-radius: 12px; color: var(--ink); background: var(--inset); font-size: 11px; outline: 0; }
+    .settings-form input:focus { border-color: color-mix(in srgb, var(--ink) 28%, transparent); }
+    .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .settings-actions button { min-height: 35px; padding: 8px 13px; border: 1px solid var(--hair); border-radius: 999px; color: var(--ink-2); background: transparent; font-size: 10px; }
+    .settings-actions button.primary { color: var(--surface); border-color: var(--ink); background: var(--ink); }
+    .settings-actions button:disabled { cursor: not-allowed; opacity: .38; }
+    .install-steps { display: grid; gap: 9px; margin: 13px 0 0; padding: 0; list-style: none; counter-reset: install-step; }
+    .install-steps li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 9px; color: var(--ink-2); font-size: 10px; line-height: 1.6; counter-increment: install-step; }
+    .install-steps li::before { content: counter(install-step); width: 18px; height: 18px; display: grid; place-items: center; border: 1px solid var(--hair); border-radius: 50%; color: var(--ink-3); font: 7px var(--mono); }
+    .brief-basis { margin: -1px 0 14px; color: var(--ink-3); font-size: 11px; line-height: 1.7; }
+    .advice-grid { display: grid; gap: 9px; }
+    .advice-line { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 9px; align-items: start; }
+    .advice-line b { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid var(--hair); border-radius: 50%; font-size: 10px; font-weight: 520; }
+    .advice-line p { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.8; }
+    .ranking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 9px; }
+    .ranking-card { min-width: 0; padding-top: 8px; border-top: 1px solid var(--hair); }
+    .ranking-card > small { display: block; color: var(--ink-4); font: 7px var(--mono); letter-spacing: .8px; }
+    .ranking-list { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; counter-reset: rank; }
+    .ranking-list li { display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 5px; color: var(--ink-2); font-size: 10px; line-height: 1.55; counter-increment: rank; }
+    .ranking-list li::before { content: counter(rank); color: var(--ink-4); font: 8px var(--mono); }
+    .ranking-list strong { display: block; color: var(--ink); font-size: 11px; font-weight: 550; }
+    .ranking-list span { display: block; margin-top: 1px; color: var(--ink-3); }
+
+    .brief-panel { height: var(--brief-h, 424px); }
+    .inspiration-panel { height: var(--hook-h, 292px); }
+    .oracle-panel { height: var(--oracle-h, 176px); min-height: 160px; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr; column-gap: 24px; }
+    .oracle-panel .panel-head { grid-column: 1 / -1; }
+    .oracle-panel .oracle-copy { max-width: 760px; }
+    .oracle-panel .card-actions { align-self: end; min-width: 180px; }
+
+    @media (max-width: 1100px) {
+      .dashboard { --memo-w: 38vw; grid-template-columns: minmax(0, 1fr) 10px minmax(340px, var(--memo-w)); }
+      .astro-panel { padding: 17px; }
+      .astro-layout { grid-template-columns: minmax(238px, .78fr) minmax(0, 1.22fr); gap: 14px; }
+      .calendar-zone { padding-right: 14px; }
+      .memo-panel { padding: 18px; }
+      .support-grid { grid-template-columns: 1fr; }
+      .support-grid .brief-panel, .support-grid .inspiration-panel { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 900px) {
+      .dashboard { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+      .splitter { display: none; }
+      .memo-panel { position: relative; top: auto; width: 100%; height: 640px; min-height: 520px; max-height: none; order: -1; }
+      .astro-layout { grid-template-columns: minmax(250px, .8fr) minmax(0, 1.2fr); }
+    }
+
+    @media (max-width: 680px) {
+      .astro-panel { height: auto !important; min-height: 760px; }
+      .astro-layout { height: auto; grid-template-columns: 1fr; }
+      .calendar-zone { padding: 0 0 16px; border-right: 0; border-bottom: 1px solid var(--hair); }
+      .sky-zone { min-height: 340px; }
+      .support-grid { grid-template-columns: 1fr; }
+      .support-grid .widget { grid-column: 1 / -1; height: auto !important; min-height: 250px; }
+      .support-grid .oracle-panel { min-height: 210px; grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+      .oracle-panel .panel-head { grid-column: auto; }
+      .memo-panel { height: 610px; }
+      .astro-event { grid-template-columns: 40px 28px minmax(0, 1fr); column-gap: 12px; }
+    }
+
+    @media print {
+      .splitter, .widget-controls, #layout-toggle, #layout-reset { display: none !important; }
+      .dashboard { display: block; }
+      .memo-panel { position: relative; height: auto; min-height: 500px; margin-top: 14px; }
+      .widget { height: auto !important; overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell" id="top">
+    <header class="topbar">
+      <div class="brand" aria-label="HOOK 灵感日历">
+        <span class="brand-mark" aria-hidden="true">H</span>
+        <span><strong>灵感日历</strong><small>HOOK / DAILY NOTES</small></span>
+      </div>
+      <div class="top-actions">
+        <button class="quiet-button" id="layout-toggle" type="button" aria-pressed="false">调整布局</button>
+        <button class="quiet-button" id="layout-reset" type="button">恢复默认</button>
+        <button class="quiet-button" id="today-button" type="button">回到今天</button>
+        <button class="quiet-button" id="theme-toggle" type="button" aria-pressed="false">切换暗色</button>
+      </div>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-lockup">
+        <p class="wordmark" aria-hidden="true">hook</p>
+        <div class="hero-copy">
+          <p class="eyebrow">One hook is enough</p>
+          <h1 id="page-title">给灵感一个落脚的日期。</h1>
+          <p>看到什么，就从这里开始写。</p>
+        </div>
+      </div>
+      <div class="date-control" aria-label="切换日期">
+        <button class="icon-button" id="previous-day" type="button" aria-label="前一天">←</button>
+        <div class="date-readout" aria-live="polite">
+          <strong id="date-title"></strong>
+          <span id="date-subtitle"></span>
+        </div>
+        <button class="icon-button" id="next-day" type="button" aria-label="后一天">→</button>
+      </div>
+    </section>
+
+    <div class="demo-strip" role="note">
+      <span><b>实时星历</b>　任意日期由 Astronomy Engine 本地计算；时间统一为北京时间。</span>
+      <span>拖动中间细线可调备忘栏宽度</span>
+    </div>
+
+    <section class="dashboard" id="dashboard" aria-label="灵感工作台">
+      <div class="left-stack">
+        <article class="panel astro-panel widget" id="astro-widget" data-widget="astro">
+          <header class="panel-head">
+            <span>Astro calendar</span>
+            <div class="panel-meta">
+              <small>天文星历实时计算 · CST</small>
+              <div class="widget-controls" aria-label="调整星象日历高度">
+                <button type="button" data-height="astro" data-delta="-40" aria-label="缩小星象日历">−</button>
+                <button type="button" data-height="astro" data-delta="40" aria-label="放大星象日历">＋</button>
+              </div>
+            </div>
+          </header>
+          <div class="astro-layout">
+            <section class="calendar-zone" aria-label="月份日期">
+              <div class="month-nav">
+                <strong id="month-title"></strong>
+                <div class="month-actions">
+                  <button id="previous-month" type="button" aria-label="上个月">←</button>
+                  <button id="next-month" type="button" aria-label="下个月">→</button>
+                </div>
+              </div>
+              <div class="weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+              <div class="calendar-grid" id="calendar" aria-label="星象日期选择"></div>
+              <div class="calendar-legend"><span><i></i>关键星象</span><span><b>2</b>当天记录数</span></div>
+              <footer class="calendar-foot"><span id="month-event-count">0 个关键星象</span><span id="selected-note-count">当天 0 条</span></footer>
+            </section>
+            <section class="sky-zone" aria-label="当天星象">
+              <div class="sky-overview">
+                <div class="moon-disc" aria-hidden="true"></div>
+                <div class="sky-title"><h2 id="astro-day-title"></h2><p id="astro-phase"></p></div>
+              </div>
+              <div class="motion-row" id="motion-row" aria-label="行星顺逆行状态"></div>
+              <div class="astro-events" id="astro-events"></div>
+              <footer class="source-line">
+                <span>口径：地心 · 热带黄道 · 北京时间</span>
+                <span><a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noreferrer">Astronomy Engine 2.1.19</a></span>
+              </footer>
+            </section>
+          </div>
+        </article>
+
+        <div class="support-grid">
+          <article class="panel brief-panel widget" id="brief-widget" data-widget="brief">
+            <header class="panel-head">
+              <span>Daily brief</span>
+              <div class="panel-meta"><small>灵感提示</small><div class="widget-controls"><button type="button" data-height="brief" data-delta="-32">−</button><button type="button" data-height="brief" data-delta="32">＋</button><button type="button" data-span="brief" aria-label="切换简报宽度">↔</button></div></div>
+            </header>
+            <div class="brief-lead"><h3 id="brief-title">今日通用开运锦囊</h3></div>
+            <p class="brief-basis" id="brief-basis"></p>
+            <div class="advice-grid">
+              <div class="advice-line"><b>宜</b><p id="brief-yi"></p></div>
+              <div class="advice-line"><b>忌</b><p id="brief-ji"></p></div>
+            </div>
+            <div class="lucky-row">
+              <div><small>COLOR</small><b id="lucky-color"></b></div>
+              <div><small>NUMBER</small><b id="lucky-number"></b></div>
+              <div><small>DIRECTION</small><b id="lucky-direction"></b></div>
+            </div>
+            <div class="ranking-grid">
+              <div class="ranking-card"><small>今日好运排行榜</small><ol class="ranking-list" id="lucky-ranking"></ol></div>
+              <div class="ranking-card"><small>今日保守行动排行榜</small><ol class="ranking-list" id="cautious-ranking"></ol></div>
+            </div>
+          </article>
+
+          <article class="panel inspiration-panel widget" id="hook-widget" data-widget="hook">
+            <header class="panel-head">
+              <span>Zodiac hooks</span>
+              <div class="panel-meta"><small>十二星座灵感卡</small><div class="widget-controls"><button type="button" data-height="hook" data-delta="-32">−</button><button type="button" data-height="hook" data-delta="32">＋</button><button type="button" data-span="hook" aria-label="切换灵感卡宽度">↔</button></div></div>
+            </header>
+            <div class="signs" id="signs" aria-label="选择星座"></div>
+            <div><div class="hook-meta"><strong id="hook-sign"></strong><span id="hook-keyword"></span></div><p class="hook-copy" id="hook-copy"></p></div>
+            <footer class="card-actions"><button class="text-button" id="shuffle-hook" type="button">换一个钩子</button><button class="quiet-button" id="use-hook" type="button">放进备忘</button></footer>
+          </article>
+
+          <article class="panel oracle-panel widget" id="oracle-panel" data-widget="oracle">
+            <header class="panel-head">
+              <span>Daily oracle</span>
+              <div class="panel-meta"><small>今日神谕卡</small><div class="widget-controls"><button type="button" data-height="oracle" data-delta="-24">−</button><button type="button" data-height="oracle" data-delta="24">＋</button><button type="button" data-span="oracle" aria-label="切换神谕卡宽度">↔</button></div></div>
+            </header>
+            <div class="oracle-copy" id="oracle-copy"><blockquote id="quote-text"></blockquote><cite id="quote-source"></cite></div>
+            <footer class="card-actions"><button class="text-button" id="shuffle-quote" type="button">再抽一张</button><button class="quiet-button" id="use-quote" type="button">收入备忘</button></footer>
+          </article>
+        </div>
+      </div>
+
+      <div class="splitter" id="memo-splitter" role="separator" aria-orientation="vertical" aria-label="拖动调整备忘栏宽度" tabindex="0"></div>
+
+      <article class="panel memo-panel widget" id="memo-widget" data-widget="memo">
+        <header class="panel-head">
+          <span>Daily memo</span>
+          <div class="panel-meta"><small id="memo-date-label"></small><div class="widget-controls"><button type="button" data-height="memo" data-delta="-40">−</button><button type="button" data-height="memo" data-delta="40">＋</button></div></div>
+        </header>
+        <div>
+          <div class="memo-headline"><h2>今日备忘</h2><b id="word-count">0 字</b></div>
+          <textarea class="memo-editor" id="memo-editor" aria-label="今日备忘录" placeholder="看到一个钩子，就顺着写下去……"></textarea>
+        </div>
+        <footer class="memo-foot">
+          <div class="memo-tools"><i class="sync-dot" id="sync-dot" aria-hidden="true"></i><span class="save-state" id="save-state">草稿自动保存</span><button class="sync-button" id="open-device" type="button">设备与同步</button></div>
+          <div class="memo-actions"><button class="ghost-core" id="open-archive" type="button">查看当天记录</button><button class="primary-button" id="save-note" type="button">保存这一条</button></div>
+        </footer>
+      </article>
+    </section>
+
+    <footer class="page-foot">
+      <span>HOOK · AIR OS INTERACTIVE PROTOTYPE</span>
+      <span>实时天文星历 · 右侧纵向备忘 · 布局可调</span>
+    </footer>
+  </main>
+
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="drawer" id="archive-drawer" aria-hidden="true" aria-labelledby="archive-title">
+    <header class="drawer-head">
+      <div><h2 id="archive-title">当天记录</h2><p id="archive-subtitle"></p></div>
+      <button class="close-button" id="close-archive" type="button" aria-label="关闭记录抽屉">×</button>
+    </header>
+    <div class="archive" id="archive-list"></div>
+  </aside>
+  <aside class="drawer" id="device-drawer" aria-hidden="true" aria-labelledby="device-title">
+    <header class="drawer-head">
+      <div><h2 id="device-title">设备与同步</h2><p>先在本机保存；联网后再与个人云端合并。</p></div>
+      <button class="close-button" id="close-device" type="button" aria-label="关闭设备与同步">×</button>
+    </header>
+    <div class="device-panel">
+      <section class="settings-section">
+        <p class="settings-label">Cloud notes</p>
+        <h3>备忘录云端同步</h3>
+        <p id="cloud-description">当前仍以本机为准。连接个人账户后，每个日期的草稿与归档记录会在设备之间同步。</p>
+        <div class="settings-status" id="cloud-status"><i aria-hidden="true"></i><span>仅保存在本机</span></div>
+        <form class="settings-form" id="cloud-login-form">
+          <label class="sr-only" for="cloud-email">同步账户邮箱</label>
+          <input id="cloud-email" name="email" type="email" autocomplete="email" placeholder="输入用于同步的邮箱" required>
+          <div class="settings-actions"><button class="primary" id="send-login-link" type="submit">发送登录链接</button><button id="sync-now" type="button">立即同步</button><button id="cloud-sign-out" type="button">断开云端</button></div>
+        </form>
+      </section>
+      <section class="settings-section">
+        <p class="settings-label">iPad PWA</p>
+        <h3>安装到主屏幕</h3>
+        <p id="install-description">部署到 HTTPS 地址后，可像普通应用一样从 iPad 主屏幕打开；无网时仍能写备忘和查看已经缓存的页面。</p>
+        <ol class="install-steps"><li>用 iPad 的 Safari 打开部署地址。</li><li>点浏览器的“共享”，选择“添加到主屏幕”。</li><li>以后直接从“灵感日历”图标进入。</li></ol>
+        <div class="settings-actions"><button class="primary" id="install-pwa" type="button">安装这个应用</button></div>
+      </section>
+    </div>
+  </aside>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/astronomy.browser.min.js"></script>
+  <script src="astro-engine.js"></script>
+  <script src="cloud-config.js"></script>
+  <script>
+    const root = document.documentElement;
+    const STORAGE_KEY = 'hook-air-os-prototype-v1';
+    const THEME_KEY = 'hook-air-os-theme';
+    const CLOUD_SESSION_KEY = 'hook-cloud-session-v1';
+    const cloudConfig = window.HOOK_CLOUD_CONFIG || {};
+    const cloudReady = /^https:\/\//.test(cloudConfig.supabaseUrl || '') && Boolean(cloudConfig.supabasePublishableKey);
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const signs = [
+      { name: '白羊座', short: '白羊', keyword: '开始', hooks: ['先别等所有条件成熟，今天只完成第一个动作。', '你真正缺少的可能不是勇气，而是一个明确的开始。', '有些答案不会想出来，只会在行动之后出现。'] },
+      { name: '金牛座', short: '金牛', keyword: '价值', hooks: ['别急着拥有更多，先看看什么已经足够。', '稳定不是停在原地，而是知道什么值得长期投入。', '今天适合重新给时间和注意力定价。'] },
+      { name: '双子座', short: '双子', keyword: '连接', hooks: ['一句没说完的话，可能正等着你换一种方式表达。', '信息很多的时候，真正重要的是你准备追问哪一个问题。', '今天的出口，可能藏在一次轻松的闲聊里。'] },
+      { name: '巨蟹座', short: '巨蟹', keyword: '安放', hooks: ['你想保护的，也许不是某个人，而是自己熟悉的感觉。', '先照顾好情绪，再决定要不要回应。', '有些安全感不是别人给的，是你允许自己慢下来。'] },
+      { name: '狮子座', short: '狮子', keyword: '表达', hooks: ['不要缩小自己，只为了让某个空间显得舒服。', '真正的自信，不需要每一次都被看见。', '今天适合把那个你一直不好意思承认的愿望说出来。'] },
+      { name: '处女座', short: '处女', keyword: '整理', hooks: ['不是所有细节都要修好，先处理最影响呼吸的那一个。', '你以为自己在追求完美，也可能只是在延迟交付。', '今天删掉一件多余的事，比增加计划更有效。'] },
+      { name: '天秤座', short: '天秤', keyword: '选择', hooks: ['迟迟没有决定，本身也在替你做决定。', '关系里的平衡，不是每个人都拿到一样多。', '今天先问自己想要什么，再考虑怎样让所有人满意。'] },
+      { name: '天蝎座', short: '天蝎', keyword: '转化', hooks: ['真正需要结束的，可能不是关系，而是你对它的某种期待。', '有些沉默不是退让，而是在重新掌握自己的力量。', '今天适合直视那个你一直绕开的真实动机。'] },
+      { name: '射手座', short: '射手', keyword: '远方', hooks: ['你想去的地方，也许先需要一种新的理解方式。', '自由不是没有承诺，而是选择自己愿意承担的方向。', '今天让一个陌生观点进入你的世界。'] },
+      { name: '摩羯座', short: '摩羯', keyword: '建造', hooks: ['真正可靠的进展，往往看起来并不激动人心。', '别只问什么时候成功，也问这条路是否值得长期走。', '今天完成一个小结构，未来会因此轻松很多。'] },
+      { name: '水瓶座', short: '水瓶', keyword: '更新', hooks: ['你不是非要融入，也可以重新定义这个群体。', '一个旧规则开始让你窒息时，也许正是更新它的时候。', '今天最有价值的想法，可能来自一次不合群。'] },
+      { name: '双鱼座', short: '双鱼', keyword: '感受', hooks: ['不是所有感受都需要解释，但它们都值得被听见。', '边界不会毁掉温柔，它让温柔可以持续。', '今天让想象力工作，但别忘了给它一个现实出口。'] }
+    ];
+
+    const briefPool = [
+      { title: '先听见，再回应。', summary: '今天的线索更适合被感受，而不是立刻归类。留一点空白，灵感会自己补上后半句。' },
+      { title: '从一个小动作开始。', summary: '不需要完整计划。先做最容易落地的那一步，后面的表达会在行动里自然出现。' },
+      { title: '旧话题需要新说法。', summary: '同一件事反复出现，不一定要继续解释；换一个角度，也许就能找到新的入口。' },
+      { title: '把注意力收回来。', summary: '今天最有力量的选择，是停止回应无关紧要的噪声，把时间还给真正想写的东西。' },
+      { title: '允许答案晚一点出现。', summary: '不确定并不代表没有方向。有些内容需要先放在心里发酵，才会长出准确的语言。' }
+    ];
+
+    const LAYOUT_KEY = 'hook-air-os-layout-v2';
+    const defaultLayout = { memoWidth: 460, memoHeight: 740, astroHeight: 424, briefHeight: 424, hookHeight: 292, oracleHeight: 176, full: { brief: false, hook: false, oracle: true } };
+
+    const colors = ['象牙白', '雾霾蓝', '松石绿', '琥珀金', '石榴红', '烟灰紫', '苔藓绿', '午夜蓝', '杏仁色', '珊瑚橙'];
+    const directions = ['东方', '东南', '南方', '西南', '西方', '西北', '北方', '东北'];
+    const quotes = [
+      { text: '知者不惑，仁者不忧，勇者不惧。', source: '《论语·子罕》' },
+      { text: '往者不可谏，来者犹可追。', source: '《论语·微子》' },
+      { text: '胜人者有力，自胜者强。', source: '《道德经》' },
+      { text: '知足不辱，知止不殆，可以长久。', source: '《道德经》' },
+      { text: '行到水穷处，坐看云起时。', source: '王维《终南别业》' },
+      { text: '山重水复疑无路，柳暗花明又一村。', source: '陆游《游山西村》' },
+      { text: '纸上得来终觉浅，绝知此事要躬行。', source: '陆游《冬夜读书示子聿》' },
+      { text: '不畏浮云遮望眼，自缘身在最高层。', source: '王安石《登飞来峰》' },
+      { text: '千淘万漉虽辛苦，吹尽狂沙始到金。', source: '刘禹锡《浪淘沙》' },
+      { text: '沉舟侧畔千帆过，病树前头万木春。', source: '刘禹锡《酬乐天扬州初逢席上见赠》' },
+      { text: '不识庐山真面目，只缘身在此山中。', source: '苏轼《题西林壁》' },
+      { text: '回首向来萧瑟处，归去，也无风雨也无晴。', source: '苏轼《定风波》' }
+    ];
+
+    let store = loadStore();
+    let selectedDate = todayInBeijing();
+    let visibleMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    let selectedSign = 0;
+    let hookOffset = 0;
+    let quoteOffset = 0;
+    let draftTimer = 0;
+    let cloudTimer = 0;
+    let toastTimer = 0;
+    let layout = loadLayout();
+    let cloudSession = loadCloudSession();
+    let deferredInstallPrompt = null;
+
+    const el = id => document.getElementById(id);
+    const editor = el('memo-editor');
+
+    function loadStore() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        return { drafts: parsed.drafts || {}, notes: parsed.notes || {}, updatedAt: parsed.updatedAt || {} };
+      } catch { return { drafts: {}, notes: {}, updatedAt: {} }; }
+    }
+
+    function loadCloudSession() {
+      try { return JSON.parse(localStorage.getItem(CLOUD_SESSION_KEY) || 'null'); }
+      catch { return null; }
+    }
+
+    function loadLayout() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}');
+        return {
+          ...defaultLayout,
+          ...saved,
+          full: { ...defaultLayout.full, ...(saved.full || {}) }
+        };
+      } catch { return structuredClone(defaultLayout); }
+    }
+
+    function persistLayout() {
+      try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout)); } catch {}
+    }
+
+    function applyLayout() {
+      const dashboard = el('dashboard');
+      const maxMemo = Math.max(340, window.innerWidth * .56);
+      layout.memoWidth = Math.max(340, Math.min(maxMemo, layout.memoWidth));
+      dashboard.style.setProperty('--memo-w', `${layout.memoWidth}px`);
+      el('astro-widget').style.setProperty('--astro-h', `${layout.astroHeight}px`);
+      el('brief-widget').style.setProperty('--brief-h', `${layout.briefHeight}px`);
+      el('hook-widget').style.setProperty('--hook-h', `${layout.hookHeight}px`);
+      el('oracle-panel').style.setProperty('--oracle-h', `${layout.oracleHeight}px`);
+      el('memo-widget').style.setProperty('--memo-h', `${layout.memoHeight}px`);
+      for (const name of ['brief', 'hook', 'oracle']) {
+        const id = name === 'oracle' ? 'oracle-panel' : `${name}-widget`;
+        el(id).classList.toggle('full', Boolean(layout.full[name]));
+      }
+    }
+
+    function persistStore() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); return true; }
+      catch { showToast('当前浏览器无法继续保存'); return false; }
+    }
+
+    function persistCloudSession() {
+      try {
+        if (cloudSession) localStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(cloudSession));
+        else localStorage.removeItem(CLOUD_SESSION_KEY);
+      } catch {}
+      updateCloudUi();
+    }
+
+    function decodeJwt(token) {
+      try {
+        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(decodeURIComponent(atob(payload).split('').map(char => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`).join('')));
+      } catch { return {}; }
+    }
+
+    function captureCloudSessionFromUrl() {
+      if (!location.hash.includes('access_token=')) return false;
+      const params = new URLSearchParams(location.hash.slice(1));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (!accessToken || !refreshToken) return false;
+      const claims = decodeJwt(accessToken);
+      cloudSession = {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: Number(params.get('expires_at')) || Math.floor(Date.now() / 1000) + Number(params.get('expires_in') || 3600),
+        user: { id: claims.sub, email: claims.email || '' }
+      };
+      persistCloudSession();
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+      return true;
+    }
+
+    function cloudHeaders(token = cloudSession?.access_token) {
+      return {
+        apikey: cloudConfig.supabasePublishableKey,
+        Authorization: `Bearer ${token || cloudConfig.supabasePublishableKey}`,
+        'Content-Type': 'application/json'
+      };
+    }
+
+    async function refreshCloudSession() {
+      if (!cloudReady || !cloudSession?.refresh_token) return null;
+      if (cloudSession.expires_at && cloudSession.expires_at * 1000 > Date.now() + 90000) return cloudSession;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: cloudHeaders(cloudConfig.supabasePublishableKey),
+        body: JSON.stringify({ refresh_token: cloudSession.refresh_token })
+      });
+      if (!response.ok) {
+        cloudSession = null;
+        persistCloudSession();
+        throw new Error('云端登录已经失效，请重新连接');
+      }
+      const data = await response.json();
+      const claims = decodeJwt(data.access_token);
+      cloudSession = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
+        user: data.user || { id: claims.sub, email: claims.email || '' }
+      };
+      persistCloudSession();
+      return cloudSession;
+    }
+
+    async function sendMagicLink(email) {
+      if (!cloudReady) throw new Error('云端项目尚未配置');
+      const redirectTo = `${location.origin}${location.pathname}`;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+        method: 'POST',
+        headers: cloudHeaders(cloudConfig.supabasePublishableKey),
+        body: JSON.stringify({ email, create_user: true })
+      });
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}));
+        throw new Error(detail.msg || detail.message || '登录链接发送失败');
+      }
+    }
+
+    function localRecord(key) {
+      return {
+        user_id: cloudSession.user?.id || decodeJwt(cloudSession.access_token).sub,
+        note_date: key,
+        draft: store.drafts[key] || '',
+        entries: store.notes[key] || [],
+        updated_at: store.updatedAt[key] || new Date(0).toISOString()
+      };
+    }
+
+    async function upsertRemote(records) {
+      if (!records.length) return;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/rest/v1/hook_daily_notes?on_conflict=user_id,note_date`, {
+        method: 'POST',
+        headers: { ...cloudHeaders(), Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(records)
+      });
+      if (!response.ok) throw new Error('云端写入失败');
+    }
+
+    async function syncAll({ silent = false } = {}) {
+      if (!cloudReady || !cloudSession || !navigator.onLine) {
+        updateCloudUi();
+        if (!silent && !navigator.onLine) showToast('当前离线，内容已保存在本机');
+        return false;
+      }
+      setCloudStatus('syncing');
+      try {
+        await refreshCloudSession();
+        const response = await fetch(`${cloudConfig.supabaseUrl}/rest/v1/hook_daily_notes?select=note_date,draft,entries,updated_at&order=updated_at.asc`, { headers: cloudHeaders() });
+        if (!response.ok) throw new Error('云端读取失败');
+        const remoteRows = await response.json();
+        const remoteByDate = new Map(remoteRows.map(row => [row.note_date, row]));
+        const localKeys = new Set([...Object.keys(store.drafts), ...Object.keys(store.notes), ...Object.keys(store.updatedAt)]);
+        const pushKeys = [];
+
+        for (const row of remoteRows) {
+          const localTime = Date.parse(store.updatedAt[row.note_date] || 0);
+          const remoteTime = Date.parse(row.updated_at || 0);
+          if (!localKeys.has(row.note_date) || remoteTime > localTime) {
+            store.drafts[row.note_date] = row.draft || '';
+            store.notes[row.note_date] = Array.isArray(row.entries) ? row.entries : [];
+            store.updatedAt[row.note_date] = row.updated_at;
+          } else if (localTime > remoteTime) pushKeys.push(row.note_date);
+        }
+
+        for (const key of localKeys) if (!remoteByDate.has(key)) pushKeys.push(key);
+        await upsertRemote([...new Set(pushKeys)].map(localRecord));
+        persistStore();
+        renderAll();
+        setCloudStatus('synced');
+        if (!silent) showToast('云端与本机已经同步');
+        return true;
+      } catch (error) {
+        setCloudStatus('error');
+        if (!silent) showToast(error.message || '同步暂时失败');
+        return false;
+      }
+    }
+
+    function queueCloudSync() {
+      clearTimeout(cloudTimer);
+      if (!cloudReady || !cloudSession) return updateCloudUi();
+      setCloudStatus(navigator.onLine ? 'pending' : 'offline');
+      cloudTimer = setTimeout(() => syncAll({ silent: true }), 900);
+    }
+
+    function setCloudStatus(state) {
+      const label = {
+        local: cloudReady ? '云端可连接' : '云端待配置',
+        pending: '等待同步',
+        syncing: '正在同步',
+        synced: '已与云端同步',
+        offline: '离线 · 已保存在本机',
+        error: '同步暂时失败'
+      }[state] || state;
+      const status = el('cloud-status');
+      status.querySelector('span').textContent = label;
+      status.classList.toggle('connected', Boolean(cloudSession));
+      el('sync-dot').classList.toggle('online', state === 'synced' || state === 'syncing');
+      el('sync-dot').title = label;
+    }
+
+    function updateCloudUi() {
+      const connected = Boolean(cloudReady && cloudSession);
+      el('cloud-login-form').classList.toggle('connected', connected);
+      el('cloud-email').disabled = connected || !cloudReady;
+      el('send-login-link').disabled = connected || !cloudReady;
+      el('sync-now').disabled = !connected || !navigator.onLine;
+      el('cloud-sign-out').disabled = !connected;
+      el('cloud-description').textContent = !cloudReady
+        ? '同步结构已经准备好。部署时填入个人 Supabase 项目的 Project URL 与 Publishable Key 后即可连接；管理员密钥不会进入网页。'
+        : connected
+          ? `${cloudSession.user?.email || '个人账户'} 已连接。采用最后修改时间合并，每次输入仍先保存在本机。`
+          : '输入邮箱后会收到一次性登录链接。登录后，每个日期的草稿与归档记录会在设备之间同步。';
+      setCloudStatus(connected ? (navigator.onLine ? 'pending' : 'offline') : 'local');
+    }
+
+    function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+    function todayInBeijing() {
+      const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+      const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+      return new Date(values.year, values.month - 1, values.day);
+    }
+    function dateKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+    function sameDay(a, b) { return dateKey(a) === dateKey(b); }
+    function addDays(date, amount) { const next = new Date(date); next.setDate(next.getDate() + amount); return startOfDay(next); }
+    function hash(text) { let value = 2166136261; for (const char of text) { value ^= char.charCodeAt(0); value = Math.imul(value, 16777619); } return value >>> 0; }
+    function formatDate(date) { return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`; }
+    function weekday(date) { return `星期${'日一二三四五六'[date.getDay()]}`; }
+    function noteCount(key) { return (store.notes[key] || []).length; }
+    function getAstro(key) {
+      try { return window.HookAstro.calculateDay(key); }
+      catch (error) { console.error('星历计算失败', error); return null; }
+    }
+
+    function renderAll() {
+      const key = dateKey(selectedDate);
+      el('date-title').textContent = formatDate(selectedDate);
+      el('date-subtitle').textContent = `${weekday(selectedDate)} · ${sameDay(selectedDate, todayInBeijing()) ? 'TODAY' : key}`;
+      el('memo-date-label').textContent = key.replaceAll('-', ' / ');
+      editor.value = store.drafts[key] || '';
+      updateWordCount();
+      updateSaveState();
+      renderCalendar();
+      renderAstro();
+      renderBrief();
+      renderSigns();
+      renderHook();
+      renderQuote();
+      renderArchive();
+    }
+
+    function renderCalendar() {
+      const year = visibleMonth.getFullYear();
+      const month = visibleMonth.getMonth();
+      el('month-title').textContent = `${year}.${String(month + 1).padStart(2, '0')}`;
+      const first = new Date(year, month, 1);
+      const mondayOffset = (first.getDay() + 6) % 7;
+      const start = addDays(first, -mondayOffset);
+      let eventTotal = 0;
+      const days = [];
+      for (let index = 0; index < 42; index++) {
+        const date = addDays(start, index);
+        const key = dateKey(date);
+        const count = noteCount(key);
+        const astro = getAstro(key);
+        const eventCount = astro?.events.length || 0;
+        if (date.getMonth() === month) eventTotal += eventCount;
+        const classes = ['day'];
+        if (date.getMonth() !== month) classes.push('outside');
+        if (sameDay(date, todayInBeijing())) classes.push('today');
+        if (sameDay(date, selectedDate)) classes.push('selected');
+        if (count) classes.push('has-note');
+        days.push(`<button class="${classes.join(' ')}" type="button" data-date="${key}" data-count="${count || ''}" aria-label="${formatDate(date)}，${eventCount} 个关键星象，${count} 条记录">${date.getDate()}${eventCount ? '<i class="event-marker" aria-hidden="true"></i>' : ''}</button>`);
+      }
+      el('calendar').innerHTML = days.join('');
+      el('month-event-count').textContent = `${eventTotal} 个关键星象`;
+      const count = noteCount(dateKey(selectedDate));
+      el('selected-note-count').textContent = `当天 ${count} 条`;
+    }
+
+    function retrogradeStatuses(astro) {
+      if (!astro) return ['星历计算暂时不可用'];
+      const retrograde = astro.statuses.filter(status => status.retrograde).map(status => `${status.name}逆行 · ${status.sign.replace('座', '')}`);
+      const mercury = astro.statuses.find(status => status.body === 'Mercury');
+      if (mercury && !mercury.retrograde) retrograde.unshift(`水星顺行 · ${mercury.sign.replace('座', '')}`);
+      return retrograde.length ? retrograde : ['主要行星均顺行'];
+    }
+
+    function astroIcon(event) {
+      const ingress = event.kind === 'ingress';
+      const station = event.kind === 'station';
+      const phase = event.kind === 'phase';
+      if (ingress) return '<span class="astro-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="7" cy="12" r="3.5"/><path d="M11.5 12h8M16.5 9l3 3-3 3"/></svg></span>';
+      if (station) return '<span class="astro-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7.5a7 7 0 1 1-1.5 7.6"/><path d="M4 11l1.5 4.1 3.9-1.8"/></svg></span>';
+      if (phase) return '<span class="astro-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 5c3.2 2.1 3.2 11.9 0 14"/></svg></span>';
+      return '<span class="astro-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6.5" cy="12" r="3"/><circle cx="17.5" cy="12" r="3"/><path d="M9.5 12h5"/></svg></span>';
+    }
+
+    function renderAstro() {
+      const key = dateKey(selectedDate);
+      const astro = getAstro(key);
+      const events = astro?.events || [];
+      el('astro-day-title').textContent = astro?.title || `${selectedDate.getMonth() + 1} 月 ${selectedDate.getDate()} 日星象`;
+      el('astro-phase').textContent = astro ? `${astro.phase.name} · 亮面约 ${astro.phase.illumination}% · 月亮${astro.phase.moonSign}` : '星历计算暂时不可用';
+      el('motion-row').innerHTML = retrogradeStatuses(astro).map(text => `<span class="motion-tag${text.includes('逆行') ? ' retro' : ''}">${text}</span>`).join('');
+      el('astro-events').innerHTML = events.length
+        ? events.map(event => `<div class="astro-event"><time>${event.time}</time>${astroIcon(event)}<div><strong>${event.title}</strong><small>${event.meta}</small></div></div>`).join('')
+        : '<p class="astro-empty">当天没有精确到日内的换座、留逆留顺、季度月相或主要相位；上方仍显示实时月相和行星顺逆行状态。</p>';
+    }
+
+    function renderBrief() {
+      const astro = getAstro(dateKey(selectedDate));
+      if (!astro) return;
+      const advice = astro.recommendations;
+      el('brief-title').textContent = '今日通用开运锦囊';
+      el('brief-basis').textContent = astro.events.length ? `依据：${astro.events.slice(0, 2).map(item => item.title).join('、')}；${astro.phase.name}。` : `依据：${astro.phase.name}，月亮${astro.phase.moonSign}。`;
+      el('brief-yi').textContent = advice.yi.join('、');
+      el('brief-ji').textContent = advice.ji.join('、');
+      el('lucky-color').textContent = advice.color;
+      el('lucky-number').textContent = advice.number;
+      el('lucky-direction').textContent = advice.direction;
+      const renderRanking = details => details.map(item => `<li><div><strong>${item.name}</strong><span>${item.reason}</span></div></li>`).join('');
+      el('lucky-ranking').innerHTML = renderRanking(advice.rankings.luckyDetails);
+      el('cautious-ranking').innerHTML = renderRanking(advice.rankings.cautiousDetails);
+    }
+
+    function renderSigns() {
+      el('signs').innerHTML = signs.map((sign, index) => `<button class="chip${index === selectedSign ? ' active' : ''}" type="button" data-sign="${index}" aria-pressed="${index === selectedSign}">${sign.short}</button>`).join('');
+    }
+
+    function currentHook() {
+      const sign = signs[selectedSign];
+      const index = (hash(dateKey(selectedDate) + selectedSign) + hookOffset) % sign.hooks.length;
+      return { sign, text: sign.hooks[index] };
+    }
+
+    function renderHook() {
+      const current = currentHook();
+      el('hook-sign').textContent = current.sign.name;
+      el('hook-keyword').textContent = `KEYWORD / ${current.sign.keyword}`;
+      el('hook-copy').textContent = current.text;
+    }
+
+    function currentQuote() {
+      const index = (hash(dateKey(selectedDate) + 'oracle') + quoteOffset) % quotes.length;
+      return quotes[index];
+    }
+
+    function renderQuote(animate = false) {
+      const quote = currentQuote();
+      el('quote-text').textContent = quote.text;
+      el('quote-source').textContent = quote.source;
+      if (animate && !reduceMotion) {
+        el('oracle-panel').classList.remove('reveal');
+        requestAnimationFrame(() => el('oracle-panel').classList.add('reveal'));
+      }
+    }
+
+    function updateWordCount() { el('word-count').textContent = `${editor.value.replace(/\s/g, '').length} 字`; }
+    function updateSaveState(message = '草稿自动保存') { el('save-state').textContent = `${message} · ${noteCount(dateKey(selectedDate))} 条已归档`; }
+
+    function appendToDraft(text) {
+      const current = editor.value.trimEnd();
+      editor.value = current ? `${current}\n\n${text}` : text;
+      saveDraft('已加入草稿');
+      editor.focus();
+    }
+
+    function saveDraft(message = '草稿已保存') {
+      const key = dateKey(selectedDate);
+      const changed = (store.drafts[key] || '') !== editor.value;
+      store.drafts[key] = editor.value;
+      if (changed) store.updatedAt[key] = new Date().toISOString();
+      persistStore();
+      updateWordCount();
+      updateSaveState(message);
+      if (changed) queueCloudSync();
+    }
+
+    function saveNote() {
+      const text = editor.value.trim();
+      if (!text) { showToast('先写下一点内容'); editor.focus(); return; }
+      const key = dateKey(selectedDate);
+      store.notes[key] ||= [];
+      store.notes[key].unshift({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, text, createdAt: new Date().toISOString() });
+      store.drafts[key] = '';
+      store.updatedAt[key] = new Date().toISOString();
+      editor.value = '';
+      persistStore();
+      updateWordCount();
+      renderCalendar();
+      renderArchive();
+      updateSaveState('已保存为新记录');
+      queueCloudSync();
+      showToast('已经收入当天记录');
+    }
+
+    function renderArchive() {
+      const key = dateKey(selectedDate);
+      const notes = store.notes[key] || [];
+      el('archive-subtitle').textContent = `${formatDate(selectedDate)} · ${notes.length} 条记录`;
+      el('archive-list').innerHTML = notes.length
+        ? notes.map(note => `<article class="archive-item"><time>${new Date(note.createdAt).toLocaleString('zh-CN', { hour12: false })}</time><p>${escapeHtml(note.text)}</p></article>`).join('')
+        : '<p class="archive-empty">这一天还没有归档记录。草稿会自动保留。</p>';
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    }
+
+    function selectDate(date) {
+      saveDraft();
+      selectedDate = startOfDay(date);
+      visibleMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      hookOffset = 0;
+      quoteOffset = 0;
+      renderAll();
+    }
+
+    function openArchive() {
+      renderArchive();
+      closeDevice(false);
+      el('archive-drawer').classList.add('open');
+      el('drawer-backdrop').classList.add('open');
+      el('archive-drawer').setAttribute('aria-hidden', 'false');
+      el('close-archive').focus();
+    }
+
+    function closeArchive(returnFocus = true) {
+      el('archive-drawer').classList.remove('open');
+      el('archive-drawer').setAttribute('aria-hidden', 'true');
+      if (!el('device-drawer').classList.contains('open')) el('drawer-backdrop').classList.remove('open');
+      if (returnFocus) el('open-archive').focus();
+    }
+
+    function openDevice() {
+      closeArchive(false);
+      updateCloudUi();
+      updateInstallUi();
+      el('device-drawer').classList.add('open');
+      el('drawer-backdrop').classList.add('open');
+      el('device-drawer').setAttribute('aria-hidden', 'false');
+      el('close-device').focus();
+    }
+
+    function closeDevice(returnFocus = true) {
+      el('device-drawer').classList.remove('open');
+      el('device-drawer').setAttribute('aria-hidden', 'true');
+      if (!el('archive-drawer').classList.contains('open')) el('drawer-backdrop').classList.remove('open');
+      if (returnFocus) el('open-device').focus();
+    }
+
+    function updateInstallUi() {
+      const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      const secure = location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+      el('install-pwa').disabled = standalone || (!secure && !deferredInstallPrompt);
+      el('install-pwa').textContent = standalone ? '已经安装' : '安装这个应用';
+      el('install-description').textContent = standalone
+        ? '当前已经以独立应用模式运行。备忘录在离线时仍会先保存在本机。'
+        : secure
+          ? '在 iPad 上请使用浏览器的“共享 → 添加到主屏幕”。安装后会以独立窗口打开，无网时仍可继续写。'
+          : 'PWA 必须先部署到 HTTPS 地址；直接双击本地 HTML 只能预览，不能安装到 iPad。';
+    }
+
+    async function installPwa() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        updateInstallUi();
+        return;
+      }
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) showToast('请点“共享”，再选“添加到主屏幕”');
+      else showToast('请使用浏览器菜单中的“安装应用”');
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      el('toast').textContent = message;
+      el('toast').classList.add('show');
+      toastTimer = setTimeout(() => el('toast').classList.remove('show'), 1800);
+    }
+
+    function setTheme(theme) {
+      root.dataset.theme = theme;
+      el('theme-toggle').setAttribute('aria-pressed', String(theme === 'dark'));
+      el('theme-toggle').textContent = theme === 'dark' ? '切换浅色' : '切换暗色';
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'dark' ? '#0a0a0c' : '#eceef1');
+      try { localStorage.setItem(THEME_KEY, theme); } catch {}
+    }
+
+    editor.addEventListener('input', () => {
+      updateWordCount();
+      el('save-state').textContent = '正在保存草稿…';
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => saveDraft(), 320);
+    });
+    el('save-note').addEventListener('click', saveNote);
+    el('open-archive').addEventListener('click', openArchive);
+    el('close-archive').addEventListener('click', closeArchive);
+    el('open-device').addEventListener('click', openDevice);
+    el('close-device').addEventListener('click', closeDevice);
+    el('drawer-backdrop').addEventListener('click', () => { closeArchive(false); closeDevice(false); });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      if (el('archive-drawer').classList.contains('open')) closeArchive();
+      else if (el('device-drawer').classList.contains('open')) closeDevice();
+    });
+
+    el('cloud-login-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const email = el('cloud-email').value.trim();
+      if (!email) return;
+      el('send-login-link').disabled = true;
+      try {
+        await sendMagicLink(email);
+        showToast('登录链接已经发到邮箱');
+        el('cloud-description').textContent = '请在这台设备上打开邮件里的登录链接。返回后会自动开始第一次同步。';
+      } catch (error) { showToast(error.message || '登录链接发送失败'); }
+      finally { updateCloudUi(); }
+    });
+    el('sync-now').addEventListener('click', () => syncAll());
+    el('cloud-sign-out').addEventListener('click', async () => {
+      if (cloudSession?.access_token) {
+        fetch(`${cloudConfig.supabaseUrl}/auth/v1/logout`, { method: 'POST', headers: cloudHeaders() }).catch(() => {});
+      }
+      cloudSession = null;
+      persistCloudSession();
+      showToast('已经断开云端，本机内容仍然保留');
+    });
+    el('install-pwa').addEventListener('click', installPwa);
+
+    el('calendar').addEventListener('click', event => {
+      const button = event.target.closest('[data-date]');
+      if (!button) return;
+      const [year, month, day] = button.dataset.date.split('-').map(Number);
+      selectDate(new Date(year, month - 1, day));
+    });
+    el('previous-day').addEventListener('click', () => selectDate(addDays(selectedDate, -1)));
+    el('next-day').addEventListener('click', () => selectDate(addDays(selectedDate, 1)));
+    el('today-button').addEventListener('click', () => selectDate(todayInBeijing()));
+    el('previous-month').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); renderCalendar(); });
+    el('next-month').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); renderCalendar(); });
+
+    el('signs').addEventListener('click', event => {
+      const button = event.target.closest('[data-sign]');
+      if (!button) return;
+      selectedSign = Number(button.dataset.sign);
+      hookOffset = 0;
+      renderSigns();
+      renderHook();
+    });
+    el('shuffle-hook').addEventListener('click', () => { hookOffset++; renderHook(); });
+    el('use-hook').addEventListener('click', () => { const hook = currentHook(); appendToDraft(`【${hook.sign.name} · ${hook.sign.keyword}】\n${hook.text}`); showToast('灵感钩子已放进备忘'); });
+    el('shuffle-quote').addEventListener('click', () => { quoteOffset++; renderQuote(true); });
+    el('use-quote').addEventListener('click', () => { const quote = currentQuote(); appendToDraft(`“${quote.text}”\n——${quote.source}`); showToast('神谕卡已收入备忘'); });
+
+    document.addEventListener('click', event => {
+      const heightButton = event.target.closest('[data-height]');
+      if (heightButton) {
+        const target = heightButton.dataset.height;
+        const delta = Number(heightButton.dataset.delta);
+        const key = `${target}Height`;
+        const minimums = { astro: 360, brief: 220, hook: 220, oracle: 150, memo: 520 };
+        const maximums = { astro: 680, brief: 520, hook: 520, oracle: 420, memo: 980 };
+        layout[key] = Math.max(minimums[target], Math.min(maximums[target], layout[key] + delta));
+        applyLayout();
+        persistLayout();
+        return;
+      }
+      const spanButton = event.target.closest('[data-span]');
+      if (spanButton) {
+        const target = spanButton.dataset.span;
+        layout.full[target] = !layout.full[target];
+        applyLayout();
+        persistLayout();
+      }
+    });
+
+    el('layout-toggle').addEventListener('click', () => {
+      const editing = document.body.classList.toggle('layout-edit');
+      el('layout-toggle').setAttribute('aria-pressed', String(editing));
+      el('layout-toggle').textContent = editing ? '完成调整' : '调整布局';
+      if (editing) showToast('可调整各组件高度与宽度');
+    });
+
+    el('layout-reset').addEventListener('click', () => {
+      layout = JSON.parse(JSON.stringify(defaultLayout));
+      applyLayout();
+      persistLayout();
+      showToast('布局已恢复默认');
+    });
+
+    const splitter = el('memo-splitter');
+    splitter.addEventListener('pointerdown', event => {
+      const startX = event.clientX;
+      const startWidth = layout.memoWidth;
+      splitter.setPointerCapture(event.pointerId);
+      const move = moveEvent => {
+        layout.memoWidth = startWidth - (moveEvent.clientX - startX);
+        applyLayout();
+      };
+      const finish = finishEvent => {
+        splitter.releasePointerCapture(finishEvent.pointerId);
+        splitter.removeEventListener('pointermove', move);
+        splitter.removeEventListener('pointerup', finish);
+        splitter.removeEventListener('pointercancel', finish);
+        persistLayout();
+      };
+      splitter.addEventListener('pointermove', move);
+      splitter.addEventListener('pointerup', finish);
+      splitter.addEventListener('pointercancel', finish);
+    });
+    splitter.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      layout.memoWidth += event.key === 'ArrowLeft' ? 24 : -24;
+      applyLayout();
+      persistLayout();
+    });
+
+    el('theme-toggle').addEventListener('click', () => setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
+    try { if (localStorage.getItem(THEME_KEY) === 'dark') setTheme('dark'); } catch {}
+
+    window.addEventListener('resize', applyLayout);
+    window.addEventListener('beforeunload', () => saveDraft());
+    window.addEventListener('online', () => { updateCloudUi(); syncAll({ silent: true }); });
+    window.addEventListener('offline', updateCloudUi);
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      updateInstallUi();
+    });
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      updateInstallUi();
+      showToast('灵感日历已经安装');
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && cloudSession && navigator.onLine) syncAll({ silent: true });
+    });
+
+    const signedInFromLink = captureCloudSessionFromUrl();
+    updateCloudUi();
+    updateInstallUi();
+    if ('serviceWorker' in navigator && ['http:', 'https:'].includes(location.protocol)) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    applyLayout();
+    renderAll();
+    if (signedInFromLink || (cloudSession && navigator.onLine)) syncAll({ silent: true });
+    if (!reduceMotion) requestAnimationFrame(() => el('oracle-panel').classList.add('reveal'));
+  </script>
+</body>
+</html>
