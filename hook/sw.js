@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hook-air-os-v7';
+const CACHE_NAME = 'hook-air-os-v8';
 const APP_SHELL = [
   './',
   './index.html',

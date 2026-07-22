@@ -347,7 +347,7 @@
     @media (max-width: 620px) {
       .shell { width: min(calc(100% - 18px), 1480px); }
       .topbar { align-items: flex-start; }
-      .top-actions .quiet-button:first-child { display: none; }
+      .top-actions #layout-reset, .top-actions #today-button, .top-actions #theme-toggle { display: none; }
       .hero-lockup { display: block; }
       .wordmark { width: max-content; max-width: 100%; margin: 0 0 14px; font-size: 68px; }
       .hero-copy { padding-left: 2px; }
@@ -391,8 +391,9 @@
       align-items: start;
       gap: 0;
     }
-    .left-stack { min-width: 0; display: grid; gap: 14px; }
-    .support-grid { min-width: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+    .left-stack { min-width: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+    .support-grid { display: contents; }
+    .left-stack .astro-panel { grid-column: 1 / -1; }
     .support-grid .brief-panel { grid-column: span 6; }
     .support-grid .inspiration-panel { grid-column: span 6; }
     .support-grid .oracle-panel { grid-column: 1 / -1; }
@@ -402,6 +403,31 @@
     .widget-controls { display: none; align-items: center; gap: 4px; }
     body.layout-edit .widget-controls { display: flex; }
     body.layout-edit .widget { outline: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent); outline-offset: -5px; }
+    body.layout-edit .widget .panel-head { cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; }
+    body.layout-edit .widget .panel-head > span:first-child::after { content: " · 按住拖动"; color: var(--ink-4); letter-spacing: .5px; }
+    body.layout-edit .memo-panel .panel-head > span:first-child::after { content: " · 位置固定"; }
+    body.layout-edit .support-grid .panel-meta > small { display: none; }
+    .widget.dragging { z-index: 8; opacity: .58; box-shadow: 0 26px 64px -34px rgba(20,21,26,.45); }
+    .widget.resizing { z-index: 7; outline-color: color-mix(in srgb, var(--ink) 48%, transparent); }
+    .resize-handle {
+      display: none;
+      position: absolute;
+      z-index: 9;
+      right: 10px;
+      bottom: 10px;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border: 0;
+      border-right: 2px solid color-mix(in srgb, var(--ink) 42%, transparent);
+      border-bottom: 2px solid color-mix(in srgb, var(--ink) 42%, transparent);
+      border-radius: 0 0 7px 0;
+      background: transparent;
+      cursor: nwse-resize;
+      touch-action: none;
+    }
+    body.layout-edit .resize-handle { display: block; }
+    .memo-panel .resize-handle { right: auto; left: 10px; border-right: 0; border-left: 2px solid color-mix(in srgb, var(--core-ink) 34%, transparent); border-bottom-color: color-mix(in srgb, var(--core-ink) 34%, transparent); border-radius: 0 0 0 7px; cursor: nesw-resize; }
     .widget-controls button {
       min-width: 24px;
       height: 24px;
@@ -576,6 +602,7 @@
         <span><strong>灵感日历</strong><small>HOOK / DAILY NOTES</small></span>
       </div>
       <div class="top-actions">
+        <button class="quiet-button" id="open-device-top" type="button">设备与同步</button>
         <button class="quiet-button" id="layout-toggle" type="button" aria-pressed="false">调整布局</button>
         <button class="quiet-button" id="layout-reset" type="button">恢复默认</button>
         <button class="quiet-button" id="today-button" type="button">回到今天</button>
@@ -604,7 +631,7 @@
 
     <div class="demo-strip" role="note">
       <span><b>实时星历</b>　任意日期由 Astronomy Engine 本地计算；时间统一为北京时间。</span>
-      <span>拖动中间细线可调备忘栏宽度</span>
+      <span id="layout-hint">拖动中间细线可调备忘栏宽度</span>
     </div>
 
     <section class="dashboard" id="dashboard" aria-label="灵感工作台">
@@ -675,7 +702,7 @@
           <article class="panel inspiration-panel widget" id="hook-widget" data-widget="hook">
             <header class="panel-head">
               <span>Zodiac hooks</span>
-              <div class="panel-meta"><small>十二星座灵感卡</small><div class="widget-controls"><button type="button" data-height="hook" data-delta="-32">−</button><button type="button" data-height="hook" data-delta="32">＋</button><button type="button" data-span="hook" aria-label="切换灵感卡宽度">↔</button></div></div>
+              <div class="panel-meta"><small>按日期实时组合 · 十二星座</small><div class="widget-controls"><button type="button" data-height="hook" data-delta="-32">−</button><button type="button" data-height="hook" data-delta="32">＋</button><button type="button" data-span="hook" aria-label="切换灵感卡宽度">↔</button></div></div>
             </header>
             <div class="signs" id="signs" aria-label="选择星座"></div>
             <div><div class="hook-meta"><strong id="hook-sign"></strong><span id="hook-keyword"></span></div><p class="hook-copy" id="hook-copy"></p></div>
@@ -771,18 +798,38 @@
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const signs = [
-      { name: '白羊座', short: '白羊', keyword: '开始', hooks: ['先别等所有条件成熟，今天只完成第一个动作。', '你真正缺少的可能不是勇气，而是一个明确的开始。', '有些答案不会想出来，只会在行动之后出现。'] },
-      { name: '金牛座', short: '金牛', keyword: '价值', hooks: ['别急着拥有更多，先看看什么已经足够。', '稳定不是停在原地，而是知道什么值得长期投入。', '今天适合重新给时间和注意力定价。'] },
-      { name: '双子座', short: '双子', keyword: '连接', hooks: ['一句没说完的话，可能正等着你换一种方式表达。', '信息很多的时候，真正重要的是你准备追问哪一个问题。', '今天的出口，可能藏在一次轻松的闲聊里。'] },
-      { name: '巨蟹座', short: '巨蟹', keyword: '安放', hooks: ['你想保护的，也许不是某个人，而是自己熟悉的感觉。', '先照顾好情绪，再决定要不要回应。', '有些安全感不是别人给的，是你允许自己慢下来。'] },
-      { name: '狮子座', short: '狮子', keyword: '表达', hooks: ['不要缩小自己，只为了让某个空间显得舒服。', '真正的自信，不需要每一次都被看见。', '今天适合把那个你一直不好意思承认的愿望说出来。'] },
-      { name: '处女座', short: '处女', keyword: '整理', hooks: ['不是所有细节都要修好，先处理最影响呼吸的那一个。', '你以为自己在追求完美，也可能只是在延迟交付。', '今天删掉一件多余的事，比增加计划更有效。'] },
-      { name: '天秤座', short: '天秤', keyword: '选择', hooks: ['迟迟没有决定，本身也在替你做决定。', '关系里的平衡，不是每个人都拿到一样多。', '今天先问自己想要什么，再考虑怎样让所有人满意。'] },
-      { name: '天蝎座', short: '天蝎', keyword: '转化', hooks: ['真正需要结束的，可能不是关系，而是你对它的某种期待。', '有些沉默不是退让，而是在重新掌握自己的力量。', '今天适合直视那个你一直绕开的真实动机。'] },
-      { name: '射手座', short: '射手', keyword: '远方', hooks: ['你想去的地方，也许先需要一种新的理解方式。', '自由不是没有承诺，而是选择自己愿意承担的方向。', '今天让一个陌生观点进入你的世界。'] },
-      { name: '摩羯座', short: '摩羯', keyword: '建造', hooks: ['真正可靠的进展，往往看起来并不激动人心。', '别只问什么时候成功，也问这条路是否值得长期走。', '今天完成一个小结构，未来会因此轻松很多。'] },
-      { name: '水瓶座', short: '水瓶', keyword: '更新', hooks: ['你不是非要融入，也可以重新定义这个群体。', '一个旧规则开始让你窒息时，也许正是更新它的时候。', '今天最有价值的想法，可能来自一次不合群。'] },
-      { name: '双鱼座', short: '双鱼', keyword: '感受', hooks: ['不是所有感受都需要解释，但它们都值得被听见。', '边界不会毁掉温柔，它让温柔可以持续。', '今天让想象力工作，但别忘了给它一个现实出口。'] }
+      { name: '白羊座', short: '白羊', keyword: '开始', topics: ['刚冒头的念头', '拖了很久的第一步', '不敢承认的冲动', '想立刻改变的事', '被压住的竞争心', '还没命名的目标'], moves: ['先做一个五分钟版本', '把第一步缩小一半', '直接说出真正想要的', '今天只推进一个动作', '把犹豫写成一句问题', '允许自己先试再改'] },
+      { name: '金牛座', short: '金牛', keyword: '价值', topics: ['真正舍不得放下的东西', '时间花在哪里', '身体正在提醒的事', '安全感的价格', '已经足够的部分', '值得长期投入的人与事'], moves: ['删掉一项多余消耗', '给重要的事留出整块时间', '先照顾身体的节奏', '重新给注意力定价', '选一个可以长期坚持的版本', '把拥有改写成珍惜'] },
+      { name: '双子座', short: '双子', keyword: '连接', topics: ['一句没说完的话', '最近反复出现的消息', '最想追问的问题', '两种相反的说法', '一次偶然的闲聊', '被忽略的小线索'], moves: ['换一种说法再讲一次', '只追问最关键的那个词', '把两个线索连起来', '先听完再下结论', '记录三个突然想到的标题', '找一个人交换看法'] },
+      { name: '巨蟹座', short: '巨蟹', keyword: '安放', topics: ['熟悉却不再舒服的地方', '想保护的人或事', '没有被照顾的情绪', '家的真正含义', '过去留下的反应', '需要一点距离的关系'], moves: ['先让情绪落地再回应', '为自己留一块安静空间', '说清楚需要什么照顾', '分开过去和现在', '把边界说得温和而明确', '做一件让身体放松的小事'] },
+      { name: '狮子座', short: '狮子', keyword: '表达', topics: ['一直不好意思承认的愿望', '渴望被看见的部分', '真正想呈现的作品', '害怕丢脸的瞬间', '不需要掌声的自信', '愿意站出来承担的事'], moves: ['把愿望写成一句直白的话', '先为自己完成它', '删掉讨好别人的那一段', '允许作品保留一点锋芒', '把注意力从评价拉回表达', '用自己的名字做一次选择'] },
+      { name: '处女座', short: '处女', keyword: '整理', topics: ['最影响呼吸的那个细节', '一直没有交付的东西', '被计划塞满的一天', '身体发出的微小信号', '重复却低效的步骤', '真正需要修正的问题'], moves: ['先完成再慢慢变好', '删掉一个不必要的步骤', '只校对最关键的部分', '把大任务切成今天的一格', '留下可复用的简单流程', '停止替所有人收拾残局'] },
+      { name: '天秤座', short: '天秤', keyword: '选择', topics: ['迟迟没有做出的决定', '关系里失去的平衡', '为了和气吞下的话', '自己的真正偏好', '双方都在等待的答案', '表面公平背后的差别'], moves: ['先写下自己的选择', '把公平改成彼此都能承受', '清楚说出一个不愿意', '停止替所有人满意', '给决定设一个时间点', '把关系里的交换摆到桌面上'] },
+      { name: '天蝎座', short: '天蝎', keyword: '转化', topics: ['一直绕开的真实动机', '不肯结束的期待', '沉默里藏着的力量', '不想让人知道的脆弱', '已经失效的控制方式', '关系中真正的交换'], moves: ['把最怕失去的写下来', '结束一种旧的应对方式', '先承认再决定怎么做', '收回过度交出去的力量', '为秘密找到安全出口', '把怀疑变成一个可以核对的问题'] },
+      { name: '射手座', short: '射手', keyword: '远方', topics: ['突然想去的地方', '正在松动的旧观点', '想学习的新东西', '自由真正要付的代价', '被日常挡住的远景', '一个陌生人的看法'], moves: ['先走一小段未知的路', '用新问题重看旧答案', '把远方变成一个具体日期', '允许观点被事实修改', '选一件值得承担的冒险', '为好奇心留出半小时'] },
+      { name: '摩羯座', short: '摩羯', keyword: '建造', topics: ['看起来不激动的小进展', '真正想长期完成的事', '责任与野心的边界', '可以复用的结构', '拖延已久的承诺', '成功之后仍想保留的生活'], moves: ['完成一个最小结构', '把目标拆到下一周', '先守住稳定再加速度', '重新分配责任', '建立一个能重复的动作', '检查这条路是否仍然值得'] },
+      { name: '水瓶座', short: '水瓶', keyword: '更新', topics: ['让人窒息的旧规则', '一次不合群的想法', '群体里没有人提的问题', '未来生活的小样本', '需要重新命名的关系', '与众不同却有效的方法'], moves: ['写出一条新的规则', '把怪想法做成小实验', '先问为什么必须这样', '找到愿意一起测试的人', '保留差异而不是解释自己', '从系统而不是个人找原因'] },
+      { name: '双鱼座', short: '双鱼', keyword: '感受', topics: ['说不清却一直存在的感受', '最近反复出现的梦或画面', '同情与过度承担的边界', '想象力需要的出口', '被环境放大的情绪', '温柔里缺少的保护'], moves: ['先写画面而不是解释', '把感受和事实分开', '给想象做一个现实出口', '说清楚什么不是自己的责任', '安静十分钟再做决定', '为敏感设置一道柔软边界'] }
+    ];
+    const hookFrames = [
+      ({ topic, move }) => `今天可以从“${topic}”开始写：如果不等别人许可，你会怎么做？${move}。`,
+      ({ topic }) => `真正卡住你的，也许不是${topic}本身，而是你还没决定先放下什么。`,
+      ({ topic, move }) => `如果${topic}会说话，它今天最想提醒你什么？写完第一句，再${move}。`,
+      ({ sky, topic }) => `今天的星象背景是“${sky}”。先不解释它，只写它让你想到的${topic}。`,
+      ({ topic }) => `关于${topic}，你一直在回答哪个错误的问题？`,
+      ({ move }) => `有些答案不会在脑子里出现。今天换一种方法：${move}。`,
+      ({ topic, move }) => `把${topic}缩小到今天能完成的程度，然后${move}。`,
+      ({ topic }) => `如果不需要证明自己，你会怎样重新处理${topic}？`,
+      ({ sky, move }) => `“${sky}”可以只是一个钩子。顺着它写三行，然后${move}。`,
+      ({ topic }) => `你以为自己想解决${topic}，真正想守住的又是什么？`,
+      ({ topic, move }) => `今天不急着得出结论。围绕${topic}写下两个相反答案，再${move}。`,
+      ({ topic }) => `如果把${topic}看成一封还没读完的信，下一句会是什么？`,
+      ({ move }) => `先别追求完整。给今天留一个能继续往下写的缺口：${move}。`,
+      ({ topic }) => `哪一部分的${topic}属于今天，哪一部分其实来自过去？`,
+      ({ topic, move }) => `围绕${topic}，删掉一句“我应该”，再${move}。`,
+      ({ sky, topic }) => `从“${sky}”出发，为${topic}写一个你平常不会用的标题。`,
+      ({ topic }) => `如果明天回看${topic}，你希望今天的自己至少诚实承认什么？`,
+      ({ topic, move }) => `不要一次写完${topic}。只找到最有力的第一句，然后${move}。`
     ];
 
     const briefPool = [
@@ -793,8 +840,12 @@
       { title: '允许答案晚一点出现。', summary: '不确定并不代表没有方向。有些内容需要先放在心里发酵，才会长出准确的语言。' }
     ];
 
-    const LAYOUT_KEY = 'hook-air-os-layout-v2';
-    const defaultLayout = { memoWidth: 460, memoHeight: 740, astroHeight: 424, briefHeight: 424, hookHeight: 292, oracleHeight: 176, full: { brief: false, hook: false, oracle: true } };
+    const LAYOUT_KEY = 'hook-air-os-layout-v3';
+    const defaultLayout = {
+      memoWidth: 460, memoHeight: 740, astroHeight: 424, briefHeight: 424, hookHeight: 292, oracleHeight: 176,
+      spans: { astro: 12, brief: 6, hook: 6, oracle: 12 },
+      order: { astro: 0, brief: 1, hook: 2, oracle: 3 }
+    };
 
     const colors = ['象牙白', '雾霾蓝', '松石绿', '琥珀金', '石榴红', '烟灰紫', '苔藓绿', '午夜蓝', '杏仁色', '珊瑚橙'];
     const directions = ['东方', '东南', '南方', '西南', '西方', '西北', '北方', '东北'];
@@ -847,7 +898,8 @@
         return {
           ...defaultLayout,
           ...saved,
-          full: { ...defaultLayout.full, ...(saved.full || {}) }
+          spans: { ...defaultLayout.spans, ...(saved.spans || {}) },
+          order: { ...defaultLayout.order, ...(saved.order || {}) }
         };
       } catch { return structuredClone(defaultLayout); }
     }
@@ -866,10 +918,132 @@
       el('hook-widget').style.setProperty('--hook-h', `${layout.hookHeight}px`);
       el('oracle-panel').style.setProperty('--oracle-h', `${layout.oracleHeight}px`);
       el('memo-widget').style.setProperty('--memo-h', `${layout.memoHeight}px`);
-      for (const name of ['brief', 'hook', 'oracle']) {
+      for (const name of ['astro', 'brief', 'hook', 'oracle']) {
         const id = name === 'oracle' ? 'oracle-panel' : `${name}-widget`;
-        el(id).classList.toggle('full', Boolean(layout.full[name]));
+        const widget = el(id);
+        const span = Math.max(4, Math.min(12, Number(layout.spans[name] || defaultLayout.spans[name])));
+        widget.style.gridColumn = window.innerWidth <= 680 ? '1 / -1' : `span ${span}`;
+        widget.style.order = String(Number(layout.order[name] ?? defaultLayout.order[name]));
+        widget.classList.toggle('full', span === 12);
       }
+    }
+
+    function widgetName(widget) { return widget?.dataset.widget || ''; }
+    function heightKey(name) { return `${name}Height`; }
+    function resizeBounds(name) {
+      return {
+        astro: [360, 720], brief: [240, 680], hook: [220, 620], oracle: [150, 480], memo: [520, 1080]
+      }[name];
+    }
+    function clamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
+
+    function installLayoutHandles() {
+      document.querySelectorAll('.widget').forEach(widget => {
+        if (widget.querySelector('.resize-handle')) return;
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'resize-handle';
+        handle.setAttribute('aria-label', `拖动调整${widgetName(widget) === 'memo' ? '备忘录' : '组件'}大小`);
+        handle.innerHTML = '<span class="sr-only">拖动调整大小</span>';
+        widget.append(handle);
+      });
+    }
+
+    function beginResize(event) {
+      const handle = event.target.closest('.resize-handle');
+      if (!handle || !document.body.classList.contains('layout-edit')) return;
+      const widget = handle.closest('.widget');
+      const name = widgetName(widget);
+      const bounds = resizeBounds(name);
+      if (!bounds) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startHeight = Number(layout[heightKey(name)]);
+      const startWidth = Number(layout.memoWidth);
+      const startSpan = Number(layout.spans[name] || 12);
+      widget.classList.add('resizing');
+      handle.setPointerCapture(event.pointerId);
+      const move = moveEvent => {
+        layout[heightKey(name)] = clamp(startHeight + moveEvent.clientY - startY, bounds[0], bounds[1]);
+        if (name === 'memo' && window.innerWidth > 900) {
+          layout.memoWidth = clamp(startWidth - (moveEvent.clientX - startX), 340, window.innerWidth * .56);
+        } else if (name !== 'memo' && window.innerWidth > 680) {
+          const boardWidth = el('astro-widget').parentElement.getBoundingClientRect().width;
+          const columnWidth = Math.max(1, boardWidth / 12);
+          layout.spans[name] = clamp(startSpan + Math.round((moveEvent.clientX - startX) / columnWidth), 4, 12);
+        }
+        applyLayout();
+      };
+      const finish = finishEvent => {
+        if (handle.hasPointerCapture(finishEvent.pointerId)) handle.releasePointerCapture(finishEvent.pointerId);
+        widget.classList.remove('resizing');
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', finish);
+        handle.removeEventListener('pointercancel', finish);
+        persistLayout();
+        showToast('组件大小已经保存');
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', finish);
+      handle.addEventListener('pointercancel', finish);
+    }
+
+    function beginWidgetHold(event) {
+      if (!document.body.classList.contains('layout-edit') || event.target.closest('button, input, textarea, a')) return;
+      const header = event.target.closest('.widget .panel-head');
+      const widget = header?.closest('.widget');
+      const name = widgetName(widget);
+      if (!header || !widget || name === 'memo') return;
+      const startX = event.clientX;
+      const startY = event.clientY;
+      let active = false;
+      let cancelled = false;
+      header.setPointerCapture(event.pointerId);
+      const activate = () => {
+        if (cancelled) return;
+        active = true;
+        widget.classList.add('dragging');
+      };
+      const holdTimer = setTimeout(activate, event.pointerType === 'mouse' ? 80 : 280);
+      const move = moveEvent => {
+        const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+        if (!active && distance > 10) {
+          cancelled = true;
+          clearTimeout(holdTimer);
+          return;
+        }
+        if (!active) return;
+        moveEvent.preventDefault();
+        const target = [...document.querySelectorAll('.left-stack .widget')].find(candidate => {
+          if (candidate === widget) return false;
+          const rect = candidate.getBoundingClientRect();
+          return moveEvent.clientX >= rect.left && moveEvent.clientX <= rect.right && moveEvent.clientY >= rect.top && moveEvent.clientY <= rect.bottom;
+        });
+        if (!target) return;
+        const targetName = widgetName(target);
+        const oldOrder = layout.order[name];
+        layout.order[name] = layout.order[targetName];
+        layout.order[targetName] = oldOrder;
+        applyLayout();
+      };
+      const finish = finishEvent => {
+        cancelled = true;
+        clearTimeout(holdTimer);
+        if (header.hasPointerCapture(finishEvent.pointerId)) header.releasePointerCapture(finishEvent.pointerId);
+        header.removeEventListener('pointermove', move);
+        header.removeEventListener('pointerup', finish);
+        header.removeEventListener('pointercancel', finish);
+        if (active) {
+          widget.classList.remove('dragging');
+          persistLayout();
+          showToast('组件位置已经保存');
+        }
+      };
+      header.addEventListener('pointermove', move);
+      header.addEventListener('pointerup', finish);
+      header.addEventListener('pointercancel', finish);
     }
 
     function persistStore() {
@@ -1207,8 +1381,19 @@
 
     function currentHook() {
       const sign = signs[selectedSign];
-      const index = (hash(dateKey(selectedDate) + selectedSign) + hookOffset) % sign.hooks.length;
-      return { sign, text: sign.hooks[index] };
+      const key = dateKey(selectedDate);
+      const day = HookAstro.calculateDay(key);
+      const base = hash(`${key}|${selectedSign}|hook`);
+      const frame = hookFrames[(base + hookOffset) % hookFrames.length];
+      const topic = sign.topics[(Math.floor(base / 7) + hookOffset * 5) % sign.topics.length];
+      const move = sign.moves[(Math.floor(base / 17) + hookOffset * 7) % sign.moves.length];
+      const skyCues = [
+        ...day.events.slice(0, 3).map(event => event.title),
+        `${day.phase.name}，月亮在${day.phase.moonSign}`,
+        day.title
+      ].filter(Boolean);
+      const sky = skyCues[(Math.floor(base / 29) + hookOffset * 3) % skyCues.length];
+      return { sign, text: frame({ topic, move, sky, keyword: sign.keyword }) };
     }
 
     function renderHook() {
@@ -1376,6 +1561,7 @@
     el('open-archive').addEventListener('click', openArchive);
     el('close-archive').addEventListener('click', closeArchive);
     el('open-device').addEventListener('click', openDevice);
+    el('open-device-top').addEventListener('click', openDevice);
     el('close-device').addEventListener('click', closeDevice);
     el('drawer-backdrop').addEventListener('click', () => { closeArchive(false); closeDevice(false); });
     document.addEventListener('keydown', event => {
@@ -1467,17 +1653,21 @@
       const spanButton = event.target.closest('[data-span]');
       if (spanButton) {
         const target = spanButton.dataset.span;
-        layout.full[target] = !layout.full[target];
+        layout.spans[target] = layout.spans[target] === 12 ? 6 : 12;
         applyLayout();
         persistLayout();
       }
     });
 
+    document.addEventListener('pointerdown', beginResize);
+    document.addEventListener('pointerdown', beginWidgetHold);
+
     el('layout-toggle').addEventListener('click', () => {
       const editing = document.body.classList.toggle('layout-edit');
       el('layout-toggle').setAttribute('aria-pressed', String(editing));
       el('layout-toggle').textContent = editing ? '完成调整' : '调整布局';
-      if (editing) showToast('可调整各组件高度与宽度');
+      el('layout-hint').textContent = editing ? '长按组件标题移动 · 拖右下角调整大小' : '拖动中间细线可调备忘栏宽度';
+      if (editing) showToast('长按标题移动，拖右下角调整大小');
     });
 
     el('layout-reset').addEventListener('click', () => {
@@ -1540,8 +1730,15 @@
     updateCloudUi();
     updateInstallUi();
     if ('serviceWorker' in navigator && ['http:', 'https:'].includes(location.protocol)) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        location.reload();
+      });
+      navigator.serviceWorker.register('./sw.js').then(registration => registration.update()).catch(() => {});
     }
+    installLayoutHandles();
     applyLayout();
     renderAll();
     if (signedInFromLink || (cloudSession && navigator.onLine)) syncAll({ silent: true });
